@@ -1,89 +1,123 @@
-# UmeAiRT's ComfyUI Auto-Installer
+# 🚀 UmeAiRT's ComfyUI Auto-Installer
 
-![PowerShell](https://img.shields.io/badge/PowerShell-5.1%2B-blue.svg)
-![Platform](https://img.shields.io/badge/Platform-Windows%2010%2F11-lightgrey.svg)
+![Python](https://img.shields.io/badge/Python-3.13-blue.svg)
+![Platform](https://img.shields.io/badge/Platform-Windows%20%7C%20Linux%20%7C%20macOS-lightgrey.svg)
 ![License](https://img.shields.io/badge/License-MIT-green.svg)
 
-This project provides a suite of PowerShell scripts to fully automate the installation and configuration of ComfyUI on Windows. The approach uses a clean installation based on `git` and a Python virtual environment (`venv`), ensuring an isolated, easy-to-update, and maintainable setup.
+Cross-platform Python CLI to fully automate the installation and configuration of ComfyUI. One-click setup with GPU optimizations, curated custom nodes, and model downloads.
 
-## Features
+## ✨ Features
 
-- **Clean Installation:** Clones the latest version of ComfyUI from the official repository and installs it in a dedicated Anaconda Python virtual environment.
-- **Dependency Management:** Automatically checks for and installs necessary tools:
-    - Anaconda Python 3.13 (if not present on the system)
-    - Git
-    - 7-Zip
-    - Aria2 (for accelerated downloads)
-- **CSV-Managed Custom Nodes:** Installs a comprehensive list of custom nodes defined in an external `custom_nodes.csv` file, making it simple to add new nodes.
-- **Interactive Model Downloaders:** Dedicated scripts guide you with menus to download the model packs you want (FLUX, WAN, HIDREAM, LTXV), with recommendations based on your graphics card's VRAM.
-- **Dedicated Update Script:** A specific `UmeAiRT-Updater.ps1` script allows you to update ComfyUI, all custom nodes, and workflows with a single command.
-- **Automated Launchers:** The project generates `.bat` files to run the installation, updates, and the final application, automatically handling administrator rights and PowerShell execution policies.
-- **Supplementary modules:** The script also installs some complex modules such as: Sageattention, Triton, Visual Studio Build Tools, ...
-- **Workflow included:** A large amount of workflows are pre-installed for each model.
+- **One-Click Install** — Double-click `Install.bat` (Windows) or run `Install.sh` (Linux/macOS)
+- **Smart Environment** — Auto-detects system, creates venv or conda environment
+- **GPU Optimizations** — Installs Triton, SageAttention, and xformers with version compatibility
+- **Curated Custom Nodes** — 30+ essential nodes installed via additive manifest (never removes user-installed nodes)
+- **Model Downloads** — Interactive menu with VRAM-based recommendations (FLUX, WAN, HiDream, LTX, QWEN)
+- **Junction Architecture** — User data (models, outputs) persists independently from ComfyUI updates
+- **Auto-Update** — Update ComfyUI, nodes, and dependencies with one command
+- **Cross-Platform Launchers** — Generated at install time (Performance, LowVRAM, Update, Download Models)
+- **Verbose Mode** — Clean output by default, detailed logging with `-v` flag
 
-## Prerequisites
+## 📋 Prerequisites
 
-- Windows 10 or Windows 11 (64-bit).
-- An active internet connection.
-- CUDA 13.0.
-- Python 3.13.
-- GIT for Windows.
+- **Python 3.13** (with `pip`)
+- **Git**
+- **NVIDIA GPU** with CUDA 13.0+ drivers
+- Internet connection
 
-## Installation and Usage
+## 🏁 Quick Start
 
-The entire process is designed to be as simple as possible.
+### Option A: For Users (Beginners)
 
-1.  **Download the Project:** Download `UmeAiRT-Install-ComfyUI.bat` from GitHub and put it to a folder of your choice (e.g., `C:\UmeAiRT-Installer`).
+1. Download or clone this repository
+2. Double-click **`Install.bat`** (Windows) or run `./Install.sh` (Linux/macOS)
+3. Follow the on-screen instructions
+4. When done, double-click **`UmeAiRT-Start-ComfyUI.bat`** to launch!
 
-2.  **Run the Installer:**
-    - Run the file `UmeAiRT-Install-ComfyUI.bat`.
-    - It will ask for administrator privileges. Please accept.
-    - The script will first download the latest versions of all installation scripts from the repository to ensure you are using the most recent version.
+### Option B: CLI (Advanced)
 
-3.  **Follow the Instructions:**
-    - The main installation script will then launch. It will install Python (if necessary), Git, 7-Zip, Aria2, and then ComfyUI.
-    - Next, it will install all custom nodes and their Python dependencies into the virtual environment.
-    - Finally, it will ask you a series of questions about which model packs you wish to download. Simply answer `Y` (yes) or `N` (no) to each question.
+```bash
+# Install the CLI tool
+pip install -e .
 
-At the end of the process, your ComfyUI installation will be complete and ready to use.
+# Run the installer
+comfyui-installer install --path C:\path\to\install --type venv
 
-## Post-Installation Usage
+# With verbose output
+comfyui-installer install --path C:\path\to\install -v
+```
 
-Three main `.bat` files will be available in your folder to manage the application:
+## 📂 Post-Installation
 
-- **`UmeAiRT-Start-ComfyUI.bat`**
-    - This is the file you will use to **launch ComfyUI**. It activates the virtual environment and starts the server.
+Four launcher scripts are generated in your install directory:
 
-- **`UmeAiRT-Download_models.bat`**
-    - Run this script if you want to **add more model packs** later without reinstalling everything. It will present you with the same selection menu as the initial installation.
+| Script | Description |
+|--------|-------------|
+| `UmeAiRT-Start-ComfyUI.bat/.sh` | Launch ComfyUI (Performance mode with SageAttention) |
+| `UmeAiRT-Start-ComfyUI_LowVRAM.bat/.sh` | Launch with memory optimizations for low VRAM GPUs |
+| `UmeAiRT-Download-Models.bat/.sh` | Reopen the model download menu |
+| `UmeAiRT-Update.bat/.sh` | Update ComfyUI, custom nodes, and dependencies |
 
-- **`UmeAiRT-Update-ComfyUI.bat`**
-    - Execute this script to **update your entire installation**. It will update the code for ComfyUI, all custom nodes, and your workflows, and it will install any new Python dependencies if required.
+## 🛠️ CLI Commands
 
-## File Structure
+```bash
+comfyui-installer install            # Full installation
+comfyui-installer update             # Update everything
+comfyui-installer download-models    # Interactive model downloads
+comfyui-installer info               # Display system info (GPU, Python, tools)
+comfyui-installer version            # Show version
+```
 
-- **`/` (your root folder)**
-    - `UmeAiRT-Installer-Updater.bat` (Main launcher that updates and installs)
-    - `UmeAiRT-Start-ComfyUI.bat` (Created after installation to launch ComfyUI)
-    - `UmeAiRT-Update-ComfyUI.bat` (Launcher for the update script)
-    - `UmeAiRT-Download_models.bat` (Menu to download more models later)
-    - **`scripts/`** (Contains all PowerShell scripts)
-        - `Install-ComfyUI.ps1`
-        - `UmeAiRT-Updater.ps1`
-        - `Download-FLUX-Models.ps1` (and other model downloaders)
-        - `custom_nodes.csv` (The list of all custom nodes to install)
-    - **`ComfyUI/`** (Created after installation, contains the application)
-    - **`logs/`** (Created, contains installation/update logs)
+## 📁 Architecture
 
-## Contributing
+The installer uses a **junction-based architecture** to separate user data from ComfyUI core:
 
-Suggestions and contributions are welcome. If you find a bug or have an idea for an improvement to the scripts, feel free to open an "Issue" on this GitHub repository.
+```
+install_path/
+├── ComfyUI/                 # Git repo (can be wiped for updates)
+│   ├── models/ → ../models  # ← junction (symlink)
+│   ├── output/ → ../output  # ← junction
+│   └── main.py
+├── models/                  # ← User data (persists)
+├── output/                  # ← User data (persists)
+├── scripts/                 # Config files
+├── UmeAiRT-Start-ComfyUI.bat
+└── UmeAiRT-Update.bat
+```
 
-## License
+## 🧑‍💻 Contributing
 
-This project is under the MIT License. See the `LICENSE` file for more details.
+Contributions are welcome! See [`AGENTS.md`](AGENTS.md) for development guidelines and [`docs/codemaps/`](docs/codemaps/) for architecture diagrams.
 
-## Acknowledgements
+```bash
+# Setup development environment
+pip install -e .
 
-- To **Comfyanonymous** for creating the incredible ComfyUI.
-- To the authors of all the **custom nodes** that enrich the ecosystem.
+# Run tests
+pytest tests/ -q
+```
+
+## 📜 Third-Party Code & Attribution
+
+This project uses or is inspired by the following open-source projects:
+
+| Component | Source | License |
+|:---|:---|:---|
+| Triton/SageAttention install logic | [DazzleML/comfyui-triton-and-sageattention-installer](https://github.com/DazzleML/comfyui-triton-and-sageattention-installer) | MIT |
+| ComfyUI | [comfyanonymous/ComfyUI](https://github.com/comfyanonymous/ComfyUI) | GPL-3.0 |
+
+## 🔒 Security
+
+- **No external script execution** — all installation logic is internalized
+- **Secure subprocess calls** — no `shell=True`, explicit argument lists
+- **HTTPS only** — all download URLs validated
+- CVE-2025-69277 patched (path traversal fix)
+
+## 📝 License
+
+MIT License — see [`LICENSE`](LICENSE) file.
+
+## ❤️ Credits
+
+Developed by **UmeAiRT**.
+Thanks to **Comfyanonymous** for creating ComfyUI and to all custom node authors.
