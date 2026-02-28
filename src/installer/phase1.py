@@ -288,6 +288,7 @@ def _find_source_scripts() -> Path | None:
 # Files that Phase 2 needs in install_path/scripts/
 ESSENTIAL_FILES = [
     "dependencies.json",
+    "custom_nodes.json",
     "snapshot.json",
     "custom_nodes.csv",
     "environment.yml",

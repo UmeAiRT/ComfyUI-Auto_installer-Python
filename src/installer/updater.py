@@ -42,37 +42,22 @@ def update_comfyui_core(comfy_path: Path, log: InstallerLogger) -> None:
 def update_custom_nodes(
     python_exe: Path,
     comfy_path: Path,
+    install_path: Path,
     log: InstallerLogger,
 ) -> None:
-    """Update all custom nodes via ComfyUI-Manager CLI."""
-    log.step("Updating Custom Nodes")
+    """Update bundled custom nodes. User-installed nodes are NEVER touched."""
+    from src.installer.nodes import load_manifest, update_all_nodes
 
-    manager_path = comfy_path / "custom_nodes" / "ComfyUI-Manager"
-    cm_cli = manager_path / "cm-cli.py"
+    scripts_dir = install_path / "scripts"
+    manifest_path = scripts_dir / "custom_nodes.json"
 
-    if not cm_cli.exists():
-        log.warning("ComfyUI-Manager not found. Skipping node updates.", level=1)
+    if not manifest_path.exists():
+        log.warning("custom_nodes.json not found. Skipping node updates.", level=1)
         return
 
-    # Set environment
-    env = {
-        "PYTHONPATH": f"{comfy_path};{manager_path}",
-        "COMFYUI_PATH": str(comfy_path),
-        "PYTHONUTF8": "1",
-        "PYTHONIOENCODING": "utf-8",
-    }
-
-    log.item("Updating all custom nodes...")
-    try:
-        run_and_log(
-            str(python_exe),
-            [str(cm_cli), "update", "all"],
-            env=env,
-            timeout=1800,
-        )
-        log.success("Custom nodes updated.", level=1)
-    except CommandError:
-        log.warning("Some nodes may have failed to update. Check logs.", level=2)
+    custom_nodes_dir = comfy_path / "custom_nodes"
+    manifest = load_manifest(manifest_path)
+    update_all_nodes(manifest, custom_nodes_dir, python_exe, log)
 
 
 def update_dependencies(
@@ -136,7 +121,7 @@ def run_update(install_path: Path) -> None:
 
     # Run update steps
     update_comfyui_core(comfy_path, log)
-    update_custom_nodes(python_exe, comfy_path, log)
+    update_custom_nodes(python_exe, comfy_path, install_path, log)
     update_dependencies(python_exe, comfy_path, install_path, log)
 
     log.step("Update Complete!")

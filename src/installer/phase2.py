@@ -170,67 +170,20 @@ def install_custom_nodes(
     install_path: Path,
     log: InstallerLogger,
 ) -> None:
-    """Install custom nodes via ComfyUI-Manager CLI."""
-    log.step("Installing Custom Nodes via Manager CLI")
+    """Install custom nodes from the JSON manifest (additive-only)."""
+    from src.installer.nodes import install_all_nodes, load_manifest
 
-    custom_nodes_dir = comfy_path / "custom_nodes"
     scripts_dir = install_path / "scripts"
+    custom_nodes_dir = comfy_path / "custom_nodes"
 
-    # 1. Install ComfyUI-Manager first
-    manager_path = custom_nodes_dir / "ComfyUI-Manager"
-    if not manager_path.exists():
-        log.item("Installing ComfyUI-Manager...")
-        run_and_log("git", [
-            "clone", "https://github.com/ltdrdata/ComfyUI-Manager.git",
-            str(manager_path),
-        ])
+    # Try to load manifest
+    manifest_path = scripts_dir / "custom_nodes.json"
+    if not manifest_path.exists():
+        log.warning("custom_nodes.json not found. Skipping node installation.", level=1)
+        return
 
-    # 2. Manager dependencies
-    manager_reqs = manager_path / "requirements.txt"
-    if manager_reqs.exists():
-        log.item("Installing ComfyUI-Manager dependencies...")
-        run_and_log(str(python_exe), ["-m", "pip", "install", "-r", str(manager_reqs)])
-
-    # 3. CLI execution with snapshot.json
-    cm_cli = manager_path / "cm-cli.py"
-    snapshot_file = scripts_dir / "snapshot.json"
-
-    # Set environment for Manager CLI
-    env = {
-        "PYTHONPATH": f"{comfy_path};{manager_path}",
-        "COMFYUI_PATH": str(comfy_path),
-        "PYTHONUTF8": "1",
-        "PYTHONIOENCODING": "utf-8",
-    }
-
-    if snapshot_file.exists() and cm_cli.exists():
-        log.item("Restoring custom nodes from snapshot.json...", style="cyan")
-        log.sub("This may take a while (installs all nodes + dependencies)...")
-
-        try:
-            run_and_log(
-                str(python_exe),
-                [str(cm_cli), "restore-snapshot", str(snapshot_file)],
-                env=env,
-                timeout=1800,  # 30 minutes
-            )
-            log.success("Custom nodes installation complete!", level=1)
-        except CommandError:
-            log.error("Snapshot restoration failed. Check logs.")
-    else:
-        log.warning("No snapshot.json or cm-cli.py found. Skipping custom nodes.", level=1)
-
-    # 4. Install UmeAiRT-Sync
-    sync_path = custom_nodes_dir / "ComfyUI-UmeAiRT-Sync"
-    if not sync_path.exists():
-        log.item("Installing ComfyUI-UmeAiRT-Sync...")
-        run_and_log("git", [
-            "clone", "https://github.com/UmeAiRT/ComfyUI-UmeAiRT-Sync.git",
-            str(sync_path),
-        ])
-        sync_reqs = sync_path / "requirements.txt"
-        if sync_reqs.exists():
-            run_and_log(str(python_exe), ["-m", "pip", "install", "-r", str(sync_reqs)])
+    manifest = load_manifest(manifest_path)
+    install_all_nodes(manifest, custom_nodes_dir, python_exe, log)
 
 
 def install_wheels(
