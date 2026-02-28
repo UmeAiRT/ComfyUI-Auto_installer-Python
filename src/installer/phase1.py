@@ -188,12 +188,13 @@ def setup_environment(
             python_path = platform.detect_python("3.13")
 
             if python_path is None:
-                # Try to install Python
+                # Try to install Python 3.13 (no fallback — wheels are cp313 only)
                 if sys.platform == "win32" and confirm("Python 3.13 not found. Install automatically?"):
                     python_path = _install_python_windows(log)
 
                 if python_path is None:
-                    log.error("Python 3.13 is required. Please install from python.org.")
+                    log.error("Python 3.13 is required (wheels are compiled for cp313).")
+                    log.item("Please install from https://www.python.org/downloads/release/python-31311/")
                     raise SystemExit(1)
 
             log.item(f"Creating venv with {python_path}...")
@@ -261,6 +262,100 @@ def _install_python_windows(log: InstallerLogger) -> Path | None:
         py_installer.unlink(missing_ok=True)
 
 
+def _find_source_scripts() -> Path | None:
+    """
+    Locate the source 'scripts/' directory containing config files.
+
+    Searches relative to the package installation, then common locations.
+
+    Returns:
+        Path to the scripts directory, or None.
+    """
+    # 1. Relative to this file: src/installer/phase1.py → ../../scripts/
+    package_root = Path(__file__).resolve().parent.parent.parent
+    candidate = package_root / "scripts"
+    if (candidate / "dependencies.json").exists():
+        return candidate
+
+    # 2. Current working directory
+    candidate = Path.cwd() / "scripts"
+    if (candidate / "dependencies.json").exists():
+        return candidate
+
+    return None
+
+
+# Files that Phase 2 needs in install_path/scripts/
+ESSENTIAL_FILES = [
+    "dependencies.json",
+    "snapshot.json",
+    "custom_nodes.csv",
+    "environment.yml",
+    "nunchaku_versions.json",
+]
+
+
+def provision_scripts(install_path: Path, log: InstallerLogger) -> None:
+    """
+    Copy essential config files to the install directory.
+
+    In the PowerShell version, the user downloaded the entire repo into
+    the install directory, so scripts/ was always present. In the Python
+    version, the package is installed separately, so we need to copy
+    the config files to install_path/scripts/.
+
+    Args:
+        install_path: Root installation directory.
+        log: Logger.
+    """
+    log.step("Provisioning Configuration Files")
+
+    source_dir = _find_source_scripts()
+    if source_dir is None:
+        log.warning("Could not find source scripts directory.", level=1)
+        log.info("Looking for dependencies.json relative to the package and CWD.")
+        return
+
+    dest_dir = install_path / "scripts"
+    dest_dir.mkdir(parents=True, exist_ok=True)
+
+    copied = 0
+    for filename in ESSENTIAL_FILES:
+        src = source_dir / filename
+        dst = dest_dir / filename
+
+        if not src.exists():
+            log.sub(f"  {filename}: [dim]not in source (skipped)[/dim]")
+            continue
+
+        if dst.exists():
+            # Update if source is newer
+            if src.stat().st_mtime > dst.stat().st_mtime:
+                shutil.copy2(src, dst)
+                log.sub(f"  {filename}: updated", style="cyan")
+                copied += 1
+            else:
+                log.sub(f"  {filename}: already up to date", style="success")
+        else:
+            shutil.copy2(src, dst)
+            log.sub(f"  {filename}: copied", style="success")
+            copied += 1
+
+    # Also copy umeairt_bundles.json to install root for the model downloader
+    bundles_src = source_dir.parent / "umeairt_bundles.json"
+    if not bundles_src.exists():
+        # Try in scripts/ itself
+        bundles_src = source_dir / "umeairt_bundles.json"
+    bundles_dst = install_path / "umeairt_bundles.json"
+
+    if bundles_src.exists() and not bundles_dst.exists():
+        shutil.copy2(bundles_src, bundles_dst)
+        log.sub("  umeairt_bundles.json: copied to install root", style="success")
+        copied += 1
+
+    log.item(f"{copied} file(s) provisioned.")
+
+
 def run_phase1(install_path: Path, install_type: str = "venv") -> Path:
     """
     Run Phase 1 of the installation.
@@ -295,6 +390,9 @@ def run_phase1(install_path: Path, install_type: str = "venv") -> Path:
 
     # Setup environment
     python_exe = setup_environment(install_path, install_type, log)
+
+    # Provision config files to install directory
+    provision_scripts(install_path, log)
 
     log.success("Phase 1 complete! Environment is ready.", level=0)
     return python_exe
