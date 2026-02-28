@@ -38,7 +38,7 @@ def install(
     ),
     verbose: bool = typer.Option(
         False,
-        "--verbose", "-V",
+        "--verbose", "-v",
         help="Show detailed output (pip, git, etc.).",
     ),
 ) -> None:
@@ -62,7 +62,7 @@ def update(
     ),
     verbose: bool = typer.Option(
         False,
-        "--verbose", "-V",
+        "--verbose", "-v",
         help="Show detailed output (pip, git, etc.).",
     ),
 ) -> None:
