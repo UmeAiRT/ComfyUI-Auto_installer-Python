@@ -212,6 +212,26 @@ def install_wheels(
             wheel_path.unlink(missing_ok=True)
 
 
+def _check_triton_installed(python_exe: Path) -> bool:
+    """Check if triton is installed in the target venv."""
+    import subprocess
+
+    result = subprocess.run(
+        [str(python_exe), "-c",
+         "from importlib.metadata import version; version('triton-windows')"],
+        capture_output=True, timeout=10,
+    )
+    if result.returncode == 0:
+        return True
+
+    result = subprocess.run(
+        [str(python_exe), "-c",
+         "from importlib.metadata import version; version('triton')"],
+        capture_output=True, timeout=10,
+    )
+    return result.returncode == 0
+
+
 def install_optimizations(
     python_exe: Path,
     comfy_path: Path,
@@ -230,7 +250,7 @@ def install_optimizations(
     is_conda = bool(os.environ.get("CONDA_PREFIX"))
 
     if not is_conda:
-        # Venv mode: use DazzleML installer if configured
+        # Venv mode: try DazzleML installer first
         installer_info = deps.files.installer_script if deps.files else None
 
         if installer_info and installer_info.url:
@@ -246,9 +266,13 @@ def install_optimizations(
                 )
             except Exception as e:
                 log.warning(f"DazzleML installer failed: {e}", level=2)
-                _install_triton_sage_manual(python_exe, log)
-        else:
+
+        # Verify triton is actually installed (DazzleML may exit 0 without success)
+        if not _check_triton_installed(python_exe):
+            log.sub("Triton not found after script — using pip fallback...", style="yellow")
             _install_triton_sage_manual(python_exe, log)
+        else:
+            log.sub("Triton installed successfully.", style="success")
     else:
         _install_triton_sage_manual(python_exe, log)
 
