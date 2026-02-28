@@ -75,20 +75,68 @@ def download_models(
         "--path", "-p",
         help="Root directory of ComfyUI installation.",
     ),
-    model_pack: str = typer.Option(
+    catalog_file: Path = typer.Option(
+        None,
+        "--catalog", "-c",
+        help="Path to model catalog JSON. Defaults to 'umeairt_bundles.json' in install path.",
+    ),
+    bundle: str = typer.Option(
         "",
-        "--pack",
-        help="Model pack to download (flux, wan21, wan22, hidream, ltx1, ltx2, qwen). Empty = interactive menu.",
+        "--bundle", "-b",
+        help="Specific bundle to download (e.g. 'FLUX'). Empty = interactive menu.",
+    ),
+    variant: str = typer.Option(
+        "",
+        "--variant", "-v",
+        help="Specific variant to download (e.g. 'fp16', 'GGUF_Q4'). Requires --bundle.",
     ),
 ) -> None:
-    """Download model packs for ComfyUI."""
+    """Download model packs for ComfyUI from the unified catalog."""
+    from src.downloader.engine import (
+        download_variant as dl_variant,
+        interactive_download,
+        list_bundles,
+        load_catalog,
+    )
+
     log = setup_logger(log_file=path / "logs" / "download_log.txt")
     log.banner("UmeAiRT", "ComfyUI — Model Downloader", __version__)
-    console.print("[yellow]⚠ Download command is not yet implemented in the Python version.[/]")
-    console.print(f"  Install path: {path}")
-    if model_pack:
-        console.print(f"  Model pack: {model_pack}")
-    console.print("\n[dim]This is a placeholder for Phase 2 of the migration.[/]")
+
+    # Find catalog file
+    if catalog_file is None:
+        catalog_file = path / "umeairt_bundles.json"
+
+    if not catalog_file.exists():
+        console.print(f"[red]Catalog not found: {catalog_file}[/]")
+        console.print("[dim]Place umeairt_bundles.json in your install directory or use --catalog.[/]")
+        raise typer.Exit(1)
+
+    catalog = load_catalog(catalog_file)
+    models_dir = path / "models"
+
+    if bundle:
+        # Non-interactive: download specific bundle/variant
+        if bundle not in catalog.bundles:
+            console.print(f"[red]Bundle '{bundle}' not found.[/]")
+            list_bundles(catalog)
+            raise typer.Exit(1)
+
+        b = catalog.bundles[bundle]
+        if variant:
+            if variant not in b.variants:
+                console.print(f"[red]Variant '{variant}' not found in {bundle}.[/]")
+                console.print(f"Available: {', '.join(b.variants.keys())}")
+                raise typer.Exit(1)
+            log.item(f"Downloading {bundle} — {variant}...", style="cyan")
+            dl_variant(b, variant, b.variants[variant], models_dir)
+        else:
+            # Download all variants for this bundle
+            for vname, v in b.variants.items():
+                log.item(f"Downloading {bundle} — {vname}...", style="cyan")
+                dl_variant(b, vname, v, models_dir)
+    else:
+        # Interactive mode
+        interactive_download(catalog, models_dir)
 
 
 @app.command()
