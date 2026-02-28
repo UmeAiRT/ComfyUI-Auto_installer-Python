@@ -1,4 +1,4 @@
-# ComfyUI Auto-Installer - Agent Development Guide
+# ComfyUI Auto-Installer — Agent Development Guide
 
 > Instructions for AI coding agents working on this project.
 > For architecture details, see `/docs/codemaps/`.
@@ -7,197 +7,206 @@
 
 ## Project Overview
 
-PowerShell-based installer for ComfyUI on Windows. Downloads and configures ComfyUI, custom nodes, models, and Python environments (venv or Miniconda). Key characteristic: **junction-based architecture** keeps user data separate from the ComfyUI git repo for clean updates.
+Cross-platform Python CLI installer for ComfyUI. Automates: Python environment setup (venv/conda), ComfyUI cloning, custom node installation, GPU optimization (Triton/SageAttention), and model downloads. Key characteristic: **junction-based architecture** keeps user data separate from the ComfyUI git repo for clean updates.
 
 ## Build / Test / Run
 
-No automated test harness exists yet. Testing is manual:
+```bash
+# Setup development environment
+pip install -e .
 
+# Run tests
+pytest tests/ -q
+
+# Run the installer
+comfyui-installer install --path C:\path\to\install --type venv
+
+# Run with verbose output
+comfyui-installer install --path C:\path\to\install -v
 ```
-# Run the installer (installs to current directory or user-chosen path)
-.\UmeAiRT-Install-ComfyUI.bat
-```
 
-See `TODO.md` section 9 for the aspirational test matrix.
+## Architecture
 
-## Critical Conventions
+### Two-Phase Installation
+
+| Phase | File | Purpose |
+|-------|------|---------|
+| **Phase 1** | `src/installer/phase1.py` | System checks, Python detection, venv/conda setup, tool installs (aria2, uv, git) |
+| **Phase 2** | `src/installer/phase2.py` | ComfyUI clone, junctions, pip packages, custom nodes, wheels, optimizations, launcher generation |
 
 ### Junction-Based Architecture
 
-**Never modify ComfyUI core folders directly.** User data (models, outputs, custom nodes) lives in external folders, linked into ComfyUI via NTFS junctions. This allows `git pull` updates without data loss.
+**Never modify ComfyUI core folders directly.** User data (models, outputs, custom nodes) lives in external folders, linked into ComfyUI via junctions. This allows `git pull` updates without data loss.
 
-```powershell
-# CORRECT - Use external folders with junctions
-$modelsPath = Join-Path $installPath "models"
-New-Item -ItemType Directory -Path $modelsPath -Force
-cmd /c mklink /J "$comfyModels" "$modelsPath"
+```python
+# CORRECT - Use junction architecture
+junction_dirs = ["models", "output", "input", "user"]
+for dirname in junction_dirs:
+    external = install_path / dirname       # User data
+    comfy_target = comfy_path / dirname     # Junction inside ComfyUI/
+    create_junction(external, comfy_target)
 
-# WRONG - Putting files in ComfyUI directly breaks git pull
-Copy-Item $model (Join-Path $comfyPath "models\file.safetensors")
+# WRONG - Putting files directly in ComfyUI/
+shutil.copy(model, comfy_path / "models" / "file.safetensors")
 ```
+
+### Custom Nodes: Additive-Only Manifest
+
+Nodes are managed via `scripts/custom_nodes.json` (not ComfyUI-Manager snapshots).
+
+```python
+# CORRECT - Add to custom_nodes.json
+{
+    "name": "ComfyUI-NewNode",
+    "url": "https://github.com/user/ComfyUI-NewNode",
+    "requirements": "requirements.txt"
+}
+
+# WRONG - Use snapshot.json or manual git clone
+```
+
+**Rules:**
+
+- Never remove user-installed nodes (additive only)
+- Always specify `requirements` if the node has a `requirements.txt`
+- Use `required: true` only for essential nodes (Manager, Sync)
+
+## Critical Conventions
 
 ### Security First
 
 This is an installer that downloads and executes code. Security is critical.
-Follow these patterns when writing new code (not all are implemented yet — see `TODO.md` section 1):
 
-```powershell
-# ALWAYS validate downloads
-$hash = Get-FileHash $downloadedFile -Algorithm SHA256
-if ($hash.Hash -ne $expectedHash) {
-    throw "Checksum mismatch! Possible corruption or tampering."
-}
+- **No external script execution**: Never download `.py` files from the internet and execute them
+- **Subprocess safety**: Always use `subprocess.run()` with explicit argument lists (no `shell=True`)
+- **HTTPS only**: All URLs must use HTTPS
+- **No `eval`/`exec`**: Never use dynamic code execution with external input
 
-# ALWAYS use TLS 1.2+
-[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+### Logging System
 
-# NEVER use Invoke-Expression with external input
-# BAD: Invoke-Expression (Invoke-WebRequest $url).Content
-# GOOD: Download to file, validate, then dot-source or import
+```python
+from src.utils.logging import InstallerLogger
+
+log.step("Step Title")          # Level 0 — Increments step counter [Step X/N]
+log.item("Main task info")      # Level 1 — Bullet point with →
+log.sub("Sub-detail")           # Level 2 — Indented sub-item with →
+log.info("Verbose detail")      # Level 3 — Hidden by default (shown with -v)
+log.success("Done!", level=1)   # Green success message
+log.error("Failed!")            # Red error message
 ```
 
-**Admin Elevation:**
-- Only elevate when absolutely necessary
-- Use self-elevation pattern with `-RunAdminTasks` flag
-- Never permanently modify system execution policy
+**Important:**
 
-### PowerShell Patterns
+- `log.step()` auto-increments the step counter — use exactly once per installation phase
+- `log.info()` (level 3) is hidden from console unless `--verbose` is enabled
+- Log to file always includes all levels regardless of verbose setting
 
-**Path Handling - ALWAYS use Join-Path:**
-```powershell
-$configFile = Join-Path $scriptPath "dependencies.json"  # Correct
-$configFile = "$scriptPath\dependencies.json"             # Wrong
+### Command Execution
+
+```python
+from src.utils.commands import run_and_log, CommandError
+
+# CORRECT - Use run_and_log for subprocess calls
+try:
+    run_and_log("git", ["clone", url, str(path)], timeout=300)
+except CommandError as e:
+    log.error(f"Clone failed: {e}")
+
+# WRONG - Direct subprocess.run without logging
+subprocess.run(["git", "clone", url], check=True)
 ```
 
-**Quote executables with spaces:**
-```powershell
-& "C:\Program Files\Tool\tool.exe" args  # Correct - call operator with quoted path
-C:\Program Files\Tool\tool.exe args      # Wrong - breaks on spaces
+### Configuration
+
+All dependencies and URLs are in `scripts/dependencies.json`, validated by Pydantic models in `src/config.py`.
+
+```python
+# CORRECT - Add to dependencies.json, define in Pydantic model
+deps = load_dependencies(Path("scripts/dependencies.json"))
+torch_url = deps.pip_packages.torch.index_url
+
+# WRONG - Hardcode URLs in Python code
+torch_url = "https://download.pytorch.org/whl/cu130"
 ```
 
-**Error Handling - Use project utilities:**
-```powershell
-# Preferred: Use Invoke-AndLog from UmeAiRTUtils.psm1
-Invoke-AndLog -File "git" -Arguments "clone $url $path"
+## File Structure
 
-# For critical operations: explicit try-catch
-try {
-    # Operation
-} catch {
-    Write-Log "ERROR: $($_.Exception.Message)" -Level 0 -Color Red
-    throw
-}
-```
-
-**Logging - Use Write-Log from UmeAiRTUtils.psm1:**
-```powershell
-Write-Log "Installing ComfyUI..." -Level 0  # Step header
-Write-Log "Cloning repository" -Level 1      # Main item
-Write-Log "Using branch: main" -Level 2      # Sub-item
-Write-Log "Git output: ..." -Level 3         # Info
-```
-
-## Dependency Management
-
-**Priority Order:**
-1. **Primary:** `snapshot.json` via ComfyUI-Manager CLI
-2. **Fallback:** `custom_nodes.csv` if snapshot missing
-
-**Never** install custom nodes manually - it breaks snapshot integrity.
-
-`snapshot.json` is auto-generated by ComfyUI-Manager. Don't hand-edit it. To regenerate:
-```powershell
-python cm-cli.py save-snapshot --output path/to/snapshot.json
-```
+| Path | Purpose |
+|------|---------|
+| `src/cli.py` | Typer CLI entry point (install, update, download-models, info) |
+| `src/config.py` | Pydantic models for `dependencies.json` and user settings |
+| `src/installer/phase1.py` | Phase 1: system setup, Python, environment |
+| `src/installer/phase2.py` | Phase 2: ComfyUI, nodes, packages, launchers |
+| `src/installer/updater.py` | Update logic (git pull + node updates) |
+| `src/installer/nodes.py` | Custom node management (additive manifest) |
+| `src/utils/logging.py` | `InstallerLogger` with step counter and verbose mode |
+| `src/utils/commands.py` | `run_and_log()`, `check_command_exists()` |
+| `src/utils/download.py` | Download with aria2c/urllib fallback |
+| `src/utils/gpu.py` | GPU detection, VRAM info |
+| `src/platform/` | Cross-platform abstractions (Windows/Linux) |
+| `src/downloader/engine.py` | Model catalog download system |
+| `scripts/dependencies.json` | URLs, packages, tools config |
+| `scripts/custom_nodes.json` | Node manifest (additive only) |
+| `scripts/nunchaku_versions.json` | Version matrix for nunchaku node |
+| `Install.bat` / `Install.sh` | Bootstrap entry points for users |
+| `bootstrap/` | Legacy bootstrap scripts |
+| `tests/` | pytest test suite |
 
 ## Critical Files
 
 | File | Notes |
 |------|-------|
-| `dependencies.json` | Schema must match exactly. All URLs must be HTTPS. PyTorch index URL must stay synchronized with version. |
-| `snapshot.json` | Auto-generated by ComfyUI-Manager. Regenerate after testing new custom nodes. Don't hand-edit. |
-| `UmeAiRTUtils.psm1` | Shared by all scripts. Changes affect everything. Maintain backward compatibility. |
+| `scripts/dependencies.json` | All URLs must be HTTPS. PyTorch index URL must match version. |
+| `scripts/custom_nodes.json` | Additive only. Never remove entries. |
+| `src/__init__.py` | Contains `__version__` — bump on every release. |
+| `src/utils/logging.py` | Changes affect all installer output. Test verbose/non-verbose. |
 
 ## Common Pitfalls
 
 | Don't | Do Instead |
 |-------|-----------|
-| Use `cd` (changes global state) | Use `-WorkingDirectory` or absolute paths |
-| Hardcode Python paths | Use detected Python or environment activation |
-| Assume admin rights | Check with `Test-IsAdmin`, elevate only when necessary |
-| Modify `ComfyUI/` repo files | Use junctions or modify external folders |
-| Skip error handling | Wrap risky operations in try-catch |
-| Hand-edit `snapshot.json` | Regenerate via ComfyUI-Manager |
+| Download and execute external scripts | Internalize the logic and credit the source |
+| Use `log.sub()` for command output | Use `log.info()` — hidden by default |
+| Hardcode paths or URLs | Use `dependencies.json` + Pydantic config |
+| Call `log.step()` more than once per phase | Count steps carefully — it increments the counter |
+| Forget to update `total_steps` in `phase1.py` | Count all `log.step()` calls across phase1 + phase2 |
+| Put files in `ComfyUI/` directly | Use junction architecture (external folders) |
+| Use `shell=True` in subprocess | Use explicit argument lists via `run_and_log()` |
 
 ## Adding New Features
 
 **New Custom Node:**
-1. Test installation manually first
-2. Add to `custom_nodes.csv` (fallback method)
-3. Install via ComfyUI-Manager, regenerate `snapshot.json`
-4. Test both snapshot and CSV installation paths
 
-**New Model Downloader:**
-1. Copy pattern from `Download-FLUX-Models.ps1`
-2. Define model metadata with VRAM requirements
-3. Use `Save-File` (aria2c + fallback)
-4. Place in correct `models/` subdirectory
-5. Add menu entry to Phase 2 installer
+1. Add entry to `scripts/custom_nodes.json` with `name`, `url`, and optionally `requirements`
+2. Test with fresh install (`--path` to a clean directory)
+3. Verify in both verbose and non-verbose modes
 
 **New Dependency:**
-1. Add to `dependencies.json` under correct section
-2. Test installation order (some packages depend on others)
-3. Check for CUDA compatibility (cu130 suffix)
-4. Verify on both Light and Full installation modes
-5. Test update path (existing installations)
 
-## Environment Detection
+1. Add to `scripts/dependencies.json` under the correct section
+2. Update Pydantic model in `src/config.py` if adding a new field
+3. Update tests if needed
+4. Test install order (some packages depend on others)
 
-```powershell
-# Detect installation type (venv vs conda)
-$installTypeFile = Join-Path $scriptPath "install_type"
-$installType = Get-Content $installTypeFile
+**New Installation Step:**
 
-if ($installType -eq "conda") {
-    # Conda requires hook initialization via dot-sourcing.
-    $condaHook = Join-Path $env:LOCALAPPDATA "Miniconda3\shell\condabin\conda-hook.ps1"
-    . $condaHook
-    conda activate UmeAiRT
-} else {
-    . (Join-Path $scriptPath "venv\Scripts\Activate.ps1")
-}
-```
+1. Add function to `phase2.py`
+2. Call it from `run_phase2()` in the correct order
+3. **Increment `total_steps`** in `phase1.py`
+4. Test step counter displays correctly
 
-## File Size Guidelines
+**New CLI Command:**
 
-- PowerShell scripts: 200-500 lines typical, 800 max before splitting
-- Extract reusable functions to `UmeAiRTUtils.psm1`
+1. Add to `src/cli.py` with `@app.command()`
+2. Follow existing pattern for options (`--path`, `--verbose`)
+3. Update this AGENTS.md
 
-## Testing Checklist
+## 🚨 Mandatory Verification Checklist
 
-- [ ] Test on fresh Windows 10 VM (no Python/Git installed)
-- [ ] Test on fresh Windows 11 VM
-- [ ] Test Light mode (venv with system Python 3.13)
-- [ ] Test Full mode (Miniconda installation)
-- [ ] Test with existing Python 3.13 installed
-- [ ] Test on different drive (not C:)
-- [ ] Test update script after fresh install
-- [ ] Verify junction creation (external folders persist after updates)
-- [ ] Test model downloads with slow network
-- [ ] Check error recovery (interrupt during git clone, download)
+**Before marking any task as complete, you MUST verify:**
 
-## Configuration Immutability
-
-```powershell
-# WRONG - Modifying user's original files in place
-$config = Get-Content config.json | ConvertFrom-Json
-$config.setting = "new value"
-$config | ConvertTo-Json | Set-Content config.json
-
-# RIGHT - Backup original, deep-clone and update
-Copy-Item config.json config.json.bak
-$config = Get-Content config.json | ConvertFrom-Json
-$newConfig = $config | ConvertTo-Json -Depth 10 | ConvertFrom-Json  # Deep clone
-$newConfig.setting = "new value"
-$newConfig | ConvertTo-Json -Depth 10 | Set-Content config.json
-```
+1. [ ] **Tests pass**: `pytest tests/ -q` — all tests green
+2. [ ] **Step counter**: `total_steps` in `phase1.py` matches actual `log.step()` calls
+3. [ ] **Verbose mode**: No `[INFO]` leaking in non-verbose mode
+4. [ ] **No hardcoded paths**: Use config or path arguments
+5. [ ] **Dependencies**: New packages added to both `dependencies.json` and Pydantic models

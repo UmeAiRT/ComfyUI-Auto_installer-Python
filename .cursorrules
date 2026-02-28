@@ -1,0 +1,24 @@
+# ComfyUI Auto-Installer — System Instructions
+
+You are working on the **ComfyUI Auto-Installer**, a cross-platform Python CLI.
+**CRITICAL**: This project uses a **junction-based architecture** — user data is separate from ComfyUI core.
+
+## Context Loading
+- **ALWAYS** read `AGENTS.md` first if you are new to the session.
+- **Refer to** `docs/codemaps/` for architecture and data flow diagrams.
+
+## Rules
+1. **Security**: Never download and execute external scripts. Internalize the logic.
+2. **Junctions**: Never put user data in `ComfyUI/` directly. Use external folders + junctions.
+3. **Logging**: Use `InstallerLogger` levels correctly. `log.info()` is hidden by default.
+4. **Config**: All URLs and packages go in `scripts/dependencies.json`, not hardcoded.
+5. **Steps**: Update `total_steps` when adding new `log.step()` calls.
+6. **Nodes**: Additive manifest only (`custom_nodes.json`). Never remove user nodes.
+7. **Tests**: Run `pytest tests/ -q` before committing.
+
+## Key Files
+- `src/cli.py`: CLI entry point.
+- `src/installer/phase1.py`: Environment setup.
+- `src/installer/phase2.py`: ComfyUI installation.
+- `scripts/dependencies.json`: All dependencies.
+- `scripts/custom_nodes.json`: Node manifest.
