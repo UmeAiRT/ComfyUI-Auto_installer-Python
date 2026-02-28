@@ -105,13 +105,26 @@ def install_node(
         log.sub(f"  {node.name}: already installed", style="success")
         return True
 
-    # Clone
+    # Clone with retry (network can be flaky)
     log.sub(f"  {node.name}: cloning...", style="cyan")
-    try:
-        run_and_log("git", ["clone", node.url, str(node_dir)], timeout=120)
-    except CommandError as e:
-        log.sub(f"  {node.name}: clone FAILED ({e})", style="red")
-        return False
+    max_retries = 3
+    for attempt in range(1, max_retries + 1):
+        try:
+            clone_args = ["clone", node.url, str(node_dir)]
+            if attempt > 1:
+                # Shallow clone on retry to reduce data
+                clone_args = ["clone", "--depth", "1", node.url, str(node_dir)]
+                log.sub(f"  {node.name}: retry {attempt}/{max_retries} (shallow)...", style="yellow")
+            run_and_log("git", clone_args, timeout=300)
+            break  # Success
+        except CommandError as e:
+            # Clean up partial clone before retry
+            if node_dir.exists():
+                import shutil
+                shutil.rmtree(node_dir, ignore_errors=True)
+            if attempt == max_retries:
+                log.sub(f"  {node.name}: clone FAILED after {max_retries} attempts ({e})", style="red")
+                return False
 
     # Install requirements
     if node.requirements:
