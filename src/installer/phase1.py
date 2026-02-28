@@ -289,8 +289,6 @@ def _find_source_scripts() -> Path | None:
 ESSENTIAL_FILES = [
     "dependencies.json",
     "custom_nodes.json",
-    "snapshot.json",
-    "custom_nodes.csv",
     "environment.yml",
     "nunchaku_versions.json",
 ]

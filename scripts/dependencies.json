@@ -1,10 +1,10 @@
 {
   "repositories": {
     "comfyui": {
-        "url": "https://github.com/comfyanonymous/ComfyUI.git"
+      "url": "https://github.com/comfyanonymous/ComfyUI.git"
     },
     "workflows": {
-        "url": "https://github.com/UmeAiRT/ComfyUI-Workflows"
+      "url": "https://github.com/UmeAiRT/ComfyUI-Workflows"
     }
   },
   "tools": {
@@ -42,14 +42,14 @@
       "nvidia-ml-py",
       "cupy-cuda13x",
       "imageio-ffmpeg",
-	  "rotary_embedding_torch",
-	  "blend_modes",
-	  "omegaconf",
-	  "segment_anything",
-	  "gguf",
-	  "deepdiff",
-	  "pynvml",
-	  "py-cpuinfo"
+      "rotary_embedding_torch",
+      "blend_modes",
+      "omegaconf",
+      "segment_anything",
+      "gguf",
+      "deepdiff",
+      "pynvml",
+      "py-cpuinfo"
     ],
     "git_repos": []
   },
@@ -57,14 +57,6 @@
     "comfy_settings": {
       "url": "https://huggingface.co/UmeAiRT/ComfyUI-Auto_installer/resolve/main/others/comfy.settings.json",
       "destination": "user/default/comfy.settings.json"
-    },
-    "custom_nodes_csv": {
-        "url": "https://github.com/UmeAiRT/ComfyUI-Auto_installer/raw/main/scripts/custom_nodes.csv",
-        "destination": "scripts/custom_nodes.csv"
-    },
-    "installer_script": {
-        "url": "https://raw.githubusercontent.com/DazzleML/comfyui-triton-and-sageattention-installer/main/comfyui_triton_sageattention.py",
-        "destination": "scripts/comfyui_triton_sageattention.py"
     }
   }
 }

@@ -107,11 +107,6 @@
             "requirements": "requirements.txt"
         },
         {
-            "name": "ComfyUI-TeaCache",
-            "url": "https://github.com/welltop-cn/ComfyUI-TeaCache.git",
-            "requirements": "requirements.txt"
-        },
-        {
             "name": "ComfyUI-Crystools",
             "url": "https://github.com/crystian/ComfyUI-Crystools.git",
             "requirements": "requirements.txt"
@@ -142,11 +137,6 @@
         {
             "name": "ComfyUI_LayerStyle",
             "url": "https://github.com/chflame163/ComfyUI_LayerStyle",
-            "requirements": "requirements.txt"
-        },
-        {
-            "name": "ComfyUI-MagCache",
-            "url": "https://github.com/Zehong-Ma/ComfyUI-MagCache",
             "requirements": "requirements.txt"
         },
         {

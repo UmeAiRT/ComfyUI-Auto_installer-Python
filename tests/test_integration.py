@@ -14,7 +14,6 @@ def test_dependencies_parsing():
     assert len(deps.pip_packages.wheels) >= 1
     assert len(deps.pip_packages.standard) >= 5
     assert deps.files.comfy_settings is not None
-    assert deps.files.installer_script is not None
 
 
 def test_platform_detection():

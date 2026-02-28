@@ -81,8 +81,6 @@ class FilesConfig(BaseModel):
     """All downloadable files."""
 
     comfy_settings: FileEntry | None = None
-    custom_nodes_csv: FileEntry | None = None
-    installer_script: FileEntry | None = None
 
 
 class DependenciesConfig(BaseModel):
