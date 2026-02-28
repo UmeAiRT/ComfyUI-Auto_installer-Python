@@ -36,13 +36,18 @@ def install(
         "--type", "-t",
         help="Installation type: 'venv' (light) or 'conda' (full).",
     ),
+    verbose: bool = typer.Option(
+        False,
+        "--verbose", "-V",
+        help="Show detailed output (pip, git, etc.).",
+    ),
 ) -> None:
     """Install ComfyUI with all dependencies and custom nodes."""
     from src.installer.phase1 import run_phase1
     from src.installer.phase2 import run_phase2
 
     # Phase 1: System setup + environment creation
-    python_exe = run_phase1(path, install_type)
+    python_exe = run_phase1(path, install_type, verbose=verbose)
 
     # Phase 2: ComfyUI install + dependencies + custom nodes
     run_phase2(path, python_exe)
@@ -55,11 +60,16 @@ def update(
         "--path", "-p",
         help="Root directory of existing ComfyUI installation.",
     ),
+    verbose: bool = typer.Option(
+        False,
+        "--verbose", "-V",
+        help="Show detailed output (pip, git, etc.).",
+    ),
 ) -> None:
     """Update ComfyUI, custom nodes, and dependencies."""
     from src.installer.updater import run_update
 
-    run_update(path)
+    run_update(path, verbose=verbose)
 
 
 @app.command(name="download-models")
@@ -81,8 +91,13 @@ def download_models(
     ),
     variant: str = typer.Option(
         "",
-        "--variant", "-v",
+        "--variant",
         help="Specific variant to download (e.g. 'fp16', 'GGUF_Q4'). Requires --bundle.",
+    ),
+    verbose: bool = typer.Option(
+        False,
+        "--verbose", "-V",
+        help="Show detailed output.",
     ),
 ) -> None:
     """Download model packs for ComfyUI from the unified catalog."""
@@ -93,7 +108,7 @@ def download_models(
         load_catalog,
     )
 
-    log = setup_logger(log_file=path / "logs" / "download_log.txt")
+    log = setup_logger(log_file=path / "logs" / "download_log.txt", verbose=verbose)
     log.banner("UmeAiRT", "ComfyUI — Model Downloader", __version__)
 
     # Find catalog file

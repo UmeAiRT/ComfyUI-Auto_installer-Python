@@ -100,16 +100,18 @@ def update_dependencies(
         )
 
 
-def run_update(install_path: Path) -> None:
+def run_update(install_path: Path, *, verbose: bool = False) -> None:
     """
     Run the full update process.
 
     Args:
         install_path: Root installation directory.
+        verbose: Show detailed subprocess output.
     """
     log = setup_logger(
         log_file=install_path / "logs" / "update_log.txt",
         total_steps=4,
+        verbose=verbose,
     )
     log.banner("UmeAiRT", "ComfyUI — Updater", __version__)
 

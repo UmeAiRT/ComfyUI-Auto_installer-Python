@@ -357,13 +357,14 @@ def provision_scripts(install_path: Path, log: InstallerLogger) -> None:
     log.item(f"{copied} file(s) provisioned.")
 
 
-def run_phase1(install_path: Path, install_type: str = "venv") -> Path:
+def run_phase1(install_path: Path, install_type: str = "venv", *, verbose: bool = False) -> Path:
     """
     Run Phase 1 of the installation.
 
     Args:
         install_path: Root installation directory.
         install_type: "venv" or "conda".
+        verbose: Show detailed subprocess output.
 
     Returns:
         Path to the python executable in the created environment.
@@ -371,6 +372,7 @@ def run_phase1(install_path: Path, install_type: str = "venv") -> Path:
     log = setup_logger(
         log_file=install_path / "logs" / "install_log.txt",
         total_steps=9,
+        verbose=verbose,
     )
     log.banner("UmeAiRT", "ComfyUI — Auto-Installer (Phase 1)", __version__)
 

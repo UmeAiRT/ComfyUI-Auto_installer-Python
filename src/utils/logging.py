@@ -44,9 +44,15 @@ class InstallerLogger:
          3: Info/Debug ("      [INFO] ")
     """
 
-    def __init__(self, log_file: Path | None = None, total_steps: int = 0) -> None:
+    def __init__(
+        self,
+        log_file: Path | None = None,
+        total_steps: int = 0,
+        verbose: bool = False,
+    ) -> None:
         self.total_steps = total_steps
         self.current_step = 0
+        self.verbose = verbose
         self._log_file = log_file
         self._file_logger: logging.Logger | None = None
 
@@ -108,6 +114,11 @@ class InstallerLogger:
             console_msg = f"      [INFO] {message}"
             file_msg = f"[INFO] {message}"
             style = style or "info"
+            # In non-verbose mode, skip console output for INFO
+            if not self.verbose:
+                if self._file_logger:
+                    self._file_logger.info(file_msg)
+                return
         else:
             console_msg = message
             file_msg = message
@@ -172,10 +183,14 @@ class InstallerLogger:
 _default_logger: InstallerLogger | None = None
 
 
-def setup_logger(log_file: Path | None = None, total_steps: int = 0) -> InstallerLogger:
+def setup_logger(
+    log_file: Path | None = None,
+    total_steps: int = 0,
+    verbose: bool = False,
+) -> InstallerLogger:
     """Create or reconfigure the default logger."""
     global _default_logger
-    _default_logger = InstallerLogger(log_file=log_file, total_steps=total_steps)
+    _default_logger = InstallerLogger(log_file=log_file, total_steps=total_steps, verbose=verbose)
     return _default_logger
 
 
