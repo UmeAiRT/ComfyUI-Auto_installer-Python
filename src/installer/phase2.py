@@ -408,6 +408,25 @@ def install_comfy_settings(
     dest.parent.mkdir(parents=True, exist_ok=True)
     download_file(settings.url, dest)
 
+
+def install_cli_in_environment(
+    python_exe: Path,
+    log: InstallerLogger,
+) -> None:
+    """
+    Install the comfyui-installer CLI into the target environment.
+
+    This ensures the `comfyui-installer` command is available in the venv/conda
+    environment, so that generated tool scripts (Update, Download-Models) work.
+    """
+    log.item("Installing comfyui-installer CLI into environment...")
+    installer_root = Path(__file__).resolve().parent.parent.parent
+    run_and_log(
+        str(python_exe),
+        ["-m", "pip", "install", "-e", str(installer_root), "--quiet"],
+    )
+    log.sub("comfyui-installer CLI available in environment.", style="success")
+
 def create_launchers(
     install_path: Path,
     log: InstallerLogger,
@@ -441,15 +460,23 @@ def create_launchers(
 
     # Model download tool
     # Update tool
-    tools: list[tuple[str, str, str]] = [
-        ("UmeAiRT-Download-Models", "Model Downloader", "comfyui-installer download-models"),
-        ("UmeAiRT-Update", "Updater", "comfyui-installer update"),
-    ]
-
-    for tool_name, tool_label, tool_cmd in tools:
-        if is_windows:
+    if is_windows:
+        tools: list[tuple[str, str, str]] = [
+            ("UmeAiRT-Download-Models", "Model Downloader",
+             'comfyui-installer download-models --path "%InstallPath%"'),
+            ("UmeAiRT-Update", "Updater",
+             'comfyui-installer update --path "%InstallPath%"'),
+        ]
+        for tool_name, tool_label, tool_cmd in tools:
             _write_bat_tool(install_path, tool_name, tool_label, tool_cmd, log)
-        else:
+    else:
+        tools = [
+            ("UmeAiRT-Download-Models", "Model Downloader",
+             'comfyui-installer download-models --path "$SCRIPT_DIR"'),
+            ("UmeAiRT-Update", "Updater",
+             'comfyui-installer update --path "$SCRIPT_DIR"'),
+        ]
+        for tool_name, tool_label, tool_cmd in tools:
             _write_sh_tool(install_path, tool_name, tool_label, tool_cmd, log)
 
 
@@ -686,6 +713,7 @@ def run_phase2(install_path: Path, python_exe: Path) -> None:
     setup_junction_architecture(install_path, comfy_path, log)
     install_core_dependencies(python_exe, comfy_path, deps, log)
     install_python_packages(python_exe, deps, log)
+    install_cli_in_environment(python_exe, log)
     install_custom_nodes(python_exe, comfy_path, install_path, log)
     install_wheels(python_exe, install_path, deps, log)
     install_optimizations(python_exe, comfy_path, install_path, deps, log)

@@ -2,6 +2,7 @@
 # ============================================================================
 # UmeAiRT ComfyUI — Auto-Installer
 # Run this script to install ComfyUI with all dependencies.
+# No prerequisites required — uv handles everything.
 # ============================================================================
 
 set -e
@@ -12,61 +13,74 @@ echo "          UmeAiRT ComfyUI — Auto-Installer"
 echo "============================================================================"
 echo ""
 
-# Set install path to script directory
-INSTALL_PATH="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# Script location (where bootstrap tools live)
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-# --- Check for Python 3 ---
-if command -v python3 &>/dev/null; then
-    PYTHON="python3"
-elif command -v python &>/dev/null; then
-    PYTHON="python"
-else
-    echo "[ERROR] Python is not installed."
-    echo ""
-    echo "Please install Python 3.13+:"
-    echo "  Ubuntu/Debian: sudo apt install python3 python3-pip python3-venv"
-    echo "  Fedora:        sudo dnf install python3 python3-pip"
-    echo "  macOS:         brew install python"
+# ============================================================================
+# Step 1: Ask for installation path
+# ============================================================================
+DEFAULT_INSTALL="$HOME/ComfyUI"
+echo "Where would you like to install ComfyUI?"
+echo "  Default: $DEFAULT_INSTALL"
+echo ""
+read -rp "Install path (Enter for default): " INSTALL_PATH
+INSTALL_PATH="${INSTALL_PATH:-$DEFAULT_INSTALL}"
+
+# Create if it doesn't exist
+mkdir -p "$INSTALL_PATH" || {
+    echo "[ERROR] Could not create directory: $INSTALL_PATH"
     exit 1
-fi
+}
 
-PY_VERSION=$($PYTHON --version 2>&1)
-echo "[INFO] Found $PY_VERSION"
+echo ""
+echo "[INFO] Installation path: $INSTALL_PATH"
+echo ""
 
-# --- Check if installer is already installed ---
-INSTALLED_VER=$($PYTHON -c "from src import __version__; print(__version__)" 2>/dev/null || echo "")
-REPO_VER=$($PYTHON -c "import re; m=re.search(r'__version__\s*=\"(.+?)\"', open('$INSTALL_PATH/src/__init__.py').read()); print(m.group(1) if m else '')" 2>/dev/null || echo "")
-
-if [ -n "$INSTALLED_VER" ]; then
-    echo "[INFO] Installed version: $INSTALLED_VER"
-    echo "[INFO] Repo version:      $REPO_VER"
-
-    if [ "$INSTALLED_VER" = "$REPO_VER" ]; then
-        echo "[INFO] Installer is up to date."
-        echo ""
+# ============================================================================
+# Step 2: Ensure uv is available
+# ============================================================================
+if ! command -v uv &>/dev/null; then
+    # Check if uv is in our install dir
+    if [ -x "$INSTALL_PATH/scripts/uv/uv" ]; then
+        export PATH="$INSTALL_PATH/scripts/uv:$PATH"
     else
-        echo ""
-        echo "[UPDATE] A new version of the installer is available!"
-        echo "         $INSTALLED_VER -> $REPO_VER"
-        echo ""
-        read -rp "Do you want to update the installer? (Y/N): " UPDATE_CHOICE
-        if [[ "$UPDATE_CHOICE" =~ ^[Yy]$ ]]; then
-            echo "[INFO] Updating installer..."
-            $PYTHON -m pip install -e "$INSTALL_PATH" --quiet
-            echo "[INFO] Updated to $REPO_VER."
-        else
-            echo "[INFO] Continuing with current version $INSTALLED_VER."
+        echo "[INFO] Installing uv package manager..."
+        curl -LsSf https://astral.sh/uv/install.sh | sh
+        export PATH="$HOME/.local/bin:$PATH"
+
+        if ! command -v uv &>/dev/null; then
+            echo "[ERROR] Failed to install uv. Check your internet connection."
+            exit 1
         fi
-        echo ""
+        echo "[INFO] uv installed."
     fi
 else
-    echo "[INFO] First install — setting up comfyui-installer..."
-    $PYTHON -m pip install -e "$INSTALL_PATH" --quiet
-    echo "[INFO] Installer ready."
-    echo ""
+    echo "[INFO] uv already available."
 fi
 
-# --- Launch the installer ---
+# ============================================================================
+# Step 3: Create bootstrap venv (uv auto-downloads Python 3.13 if needed)
+# ============================================================================
+VENV_PATH="$INSTALL_PATH/scripts/venv"
+VENV_PY="$VENV_PATH/bin/python"
+
+if [ ! -f "$VENV_PY" ]; then
+    echo "[INFO] Creating Python 3.13 environment..."
+    uv venv "$VENV_PATH" --python 3.13 --seed
+    echo "[INFO] Python environment ready."
+else
+    echo "[INFO] Python environment already exists."
+fi
+
+# ============================================================================
+# Step 4: Install the installer package into the venv
+# ============================================================================
+echo "[INFO] Installing comfyui-installer..."
+uv pip install -e "$SCRIPT_DIR" --python "$VENV_PY" --quiet
+
+# ============================================================================
+# Step 5: Launch the installer CLI
+# ============================================================================
 echo "[INFO] Starting installation..."
 echo ""
-comfyui-installer install --path "$INSTALL_PATH"
+"$VENV_PY" -m src.cli install --path "$INSTALL_PATH"

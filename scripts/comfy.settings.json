@@ -205,10 +205,13 @@
             }
         }
     },
-    "Comfy.Locale": "en",
+    "Comfy.LinkRenderMode": -1,
     "Comfy.Graph.CanvasInfo": false,
-    "Comfy.LinkRenderMode": 0,
-    "Comfy.NodeBadge.NodeSourceBadgeMode": "None",
+    "Comfy.Locale": "en",
     "Comfy.NodeBadge.NodeLifeCycleBadgeMode": "None",
+    "Comfy.NodeBadge.NodeSourceBadgeMode": "None",
+    "Comfy.VueNodes.Enabled": true,
+    "Comfy.Execution.PreviewMethod": "auto",
+    "pysssss.SnapToGrid": true,
     "Comfy.Minimap.Visible": false
 }

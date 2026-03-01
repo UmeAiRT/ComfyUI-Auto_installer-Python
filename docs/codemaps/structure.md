@@ -4,7 +4,7 @@
 
 | Directory/File | Description |
 |----------------|-------------|
-| `Install.bat` / `Install.sh` | **USER ENTRY POINT**. Bootstrap scripts for beginners. |
+| `Install.bat` / `Install.sh` | **USER ENTRY POINT**. Zero-dependency bootstrap: downloads `uv`, creates venv, asks install path. |
 | `src/` | **CORE LOGIC**. All Python source code. |
 | `scripts/` | **CONFIGURATION**. JSON configs, manifests, and data files. |
 | `bootstrap/` | Legacy bootstrap scripts (kept for reference). |
@@ -51,22 +51,27 @@ src/
 
 ```mermaid
 graph TD
-    A["Install.bat / Install.sh"] --> B["comfyui-installer install"]
+    A["Install.bat / Install.sh"] --> A1["Ask install path"]
+    A1 --> A2["Download uv (if absent)"]
+    A2 --> A3["uv venv --python 3.13 --seed"]
+    A3 --> A4["uv pip install -e . (installer)"]
+    A4 --> B["comfyui-installer install"]
     B --> P1["Phase 1 (phase1.py)"]
     B --> P2["Phase 2 (phase2.py)"]
 
-    P1 --> P1a["Check prerequisites (Python, Git)"]
-    P1a --> P1b["Install tools (aria2, uv)"]
-    P1b --> P1c["Create venv/conda environment"]
+    P1 --> P1a["Check prerequisites (Git)"]
+    P1a --> P1b["Install tools (aria2)"]
+    P1b --> P1c["Reuse bootstrap venv OR create conda env"]
     P1c --> P1d["Provision config files"]
 
     P2 --> P2a["Clone ComfyUI repo"]
     P2a --> P2b["Setup junction architecture"]
     P2b --> P2c["Install pip packages + PyTorch"]
-    P2c --> P2d["Install custom nodes (manifest)"]
-    P2d --> P2e["Install wheels + optimizations"]
-    P2e --> P2f["Generate launcher scripts"]
-    P2f --> P2g["Offer model downloads"]
+    P2c --> P2d["Install CLI in environment"]
+    P2d --> P2e["Install custom nodes (manifest)"]
+    P2e --> P2f["Install wheels + optimizations"]
+    P2f --> P2g["Generate launcher scripts"]
+    P2g --> P2h["Offer model downloads"]
 ```
 
 ## CLI Commands

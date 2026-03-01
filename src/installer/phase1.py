@@ -24,7 +24,7 @@ from pathlib import Path
 from src import __version__
 from src.config import InstallerSettings, load_dependencies, load_settings
 from src.platform.base import get_platform
-from src.utils.commands import check_command_exists, run_and_log
+from src.utils.commands import CommandError, check_command_exists, run_and_log
 from src.utils.download import download_file
 from src.utils.logging import InstallerLogger, get_logger, setup_logger
 from src.utils.prompts import ask_choice, confirm
@@ -184,22 +184,51 @@ def setup_environment(
         if venv_path.exists():
             log.sub("Virtual environment already exists.", style="success")
         else:
-            platform = get_platform()
-            python_path = platform.detect_python("3.13")
+            # Try uv first — it handles Python download automatically
+            if check_command_exists("uv"):
+                log.item("Creating venv with uv (Python 3.13 auto-managed)...")
+                try:
+                    run_and_log("uv", ["venv", str(venv_path), "--python", "3.13", "--seed"])
+                    log.sub("Virtual environment created via uv.", style="success")
+                except CommandError:
+                    log.warning("uv venv creation failed, falling back to system Python.", level=2)
+                    venv_path_exists = False
+                else:
+                    venv_path_exists = True
+            else:
+                # Also check for uv in scripts/uv/ (installed by bootstrap)
+                local_uv = scripts_dir / "uv" / ("uv.exe" if sys.platform == "win32" else "uv")
+                if local_uv.exists():
+                    log.item("Creating venv with local uv (Python 3.13 auto-managed)...")
+                    try:
+                        run_and_log(str(local_uv), ["venv", str(venv_path), "--python", "3.13", "--seed"])
+                        log.sub("Virtual environment created via uv.", style="success")
+                    except CommandError:
+                        log.warning("uv venv creation failed, falling back to system Python.", level=2)
+                        venv_path_exists = False
+                    else:
+                        venv_path_exists = True
+                else:
+                    venv_path_exists = False
 
-            if python_path is None:
-                # Try to install Python 3.13 (no fallback — wheels are cp313 only)
-                if sys.platform == "win32" and confirm("Python 3.13 not found. Install automatically?"):
-                    python_path = _install_python_windows(log)
+            # Fallback: use system Python if uv didn't create the venv
+            if not venv_path.exists():
+                platform = get_platform()
+                python_path = platform.detect_python("3.13")
 
                 if python_path is None:
-                    log.error("Python 3.13 is required (wheels are compiled for cp313).")
-                    log.item("Please install from https://www.python.org/downloads/release/python-31311/")
-                    raise SystemExit(1)
+                    # Try to install Python 3.13 (no fallback — wheels are cp313 only)
+                    if sys.platform == "win32" and confirm("Python 3.13 not found. Install automatically?"):
+                        python_path = _install_python_windows(log)
 
-            log.item(f"Creating venv with {python_path}...")
-            run_and_log(str(python_path), ["-m", "venv", str(venv_path)])
-            log.sub("Virtual environment created.", style="success")
+                    if python_path is None:
+                        log.error("Python 3.13 is required (wheels are compiled for cp313).")
+                        log.item("Please install from https://www.python.org/downloads/release/python-31311/")
+                        raise SystemExit(1)
+
+                log.item(f"Creating venv with {python_path}...")
+                run_and_log(str(python_path), ["-m", "venv", str(venv_path)])
+                log.sub("Virtual environment created.", style="success")
 
         # Return the venv python
         if sys.platform == "win32":

@@ -5,6 +5,7 @@ chcp 65001 > nul
 :: ============================================================================
 :: UmeAiRT ComfyUI — Auto-Installer
 :: Double-click this file to install ComfyUI with all dependencies.
+:: No prerequisites required — uv handles everything.
 :: ============================================================================
 
 title UmeAiRT ComfyUI Installer
@@ -14,65 +15,98 @@ echo           UmeAiRT ComfyUI — Auto-Installer
 echo ============================================================================
 echo.
 
-:: Set install path to where this script is located
-set "InstallPath=%~dp0"
+:: Script location (where bootstrap tools live)
+set "ScriptDir=%~dp0"
+if "%ScriptDir:~-1%"=="\" set "ScriptDir=%ScriptDir:~0,-1%"
+
+:: ============================================================================
+:: Step 1: Ask for installation path
+:: ============================================================================
+set "DefaultInstall=%USERPROFILE%\ComfyUI"
+echo Where would you like to install ComfyUI?
+echo   Default: %DefaultInstall%
+echo.
+set /p "InstallPath=Install path (Enter for default): "
+if "%InstallPath%"=="" set "InstallPath=%DefaultInstall%"
+
+:: Trim trailing backslash
 if "%InstallPath:~-1%"=="\" set "InstallPath=%InstallPath:~0,-1%"
 
-:: --- Check for Python ---
-python --version >nul 2>&1
-if %errorlevel% neq 0 (
-    echo [ERROR] Python is not installed or not in PATH.
-    echo.
-    echo Please install Python 3.13 from https://python.org
-    echo Make sure to check "Add Python to PATH" during installation.
-    echo.
+:: Create if it doesn't exist
+if not exist "%InstallPath%" (
+    mkdir "%InstallPath%"
+    if !errorlevel! neq 0 (
+        echo [ERROR] Could not create directory: %InstallPath%
+        pause
+        exit /b 1
+    )
+)
+
+echo.
+echo [INFO] Installation path: %InstallPath%
+echo.
+
+:: ============================================================================
+:: Step 2: Ensure uv is available (standalone binary, no prerequisites)
+:: ============================================================================
+set "UV_DIR=%InstallPath%\scripts\uv"
+set "UV_EXE=%UV_DIR%\uv.exe"
+
+if not exist "%UV_EXE%" (
+    echo [INFO] Downloading uv package manager...
+    mkdir "%UV_DIR%" 2>nul
+
+    :: curl and tar are available natively on Windows 10/11
+    curl -LsSf -o "%TEMP%\uv-installer.zip" ^
+        "https://github.com/astral-sh/uv/releases/latest/download/uv-x86_64-pc-windows-msvc.zip"
+    if !errorlevel! neq 0 (
+        echo [ERROR] Failed to download uv. Check your internet connection.
+        pause
+        exit /b 1
+    )
+
+    tar -xf "%TEMP%\uv-installer.zip" -C "%UV_DIR%"
+    del "%TEMP%\uv-installer.zip" 2>nul
+    echo [INFO] uv installed.
+) else (
+    echo [INFO] uv already available.
+)
+
+:: ============================================================================
+:: Step 3: Create bootstrap venv (uv auto-downloads Python 3.13 if needed)
+:: ============================================================================
+set "VENV_PATH=%InstallPath%\scripts\venv"
+set "VENV_PY=%VENV_PATH%\Scripts\python.exe"
+
+if not exist "%VENV_PY%" (
+    echo [INFO] Creating Python 3.13 environment...
+    "%UV_EXE%" venv "%VENV_PATH%" --python 3.13 --seed
+    if !errorlevel! neq 0 (
+        echo [ERROR] Failed to create Python environment.
+        pause
+        exit /b 1
+    )
+    echo [INFO] Python environment ready.
+) else (
+    echo [INFO] Python environment already exists.
+)
+
+:: ============================================================================
+:: Step 4: Install the installer package into the venv
+:: ============================================================================
+echo [INFO] Installing comfyui-installer...
+"%UV_EXE%" pip install -e "%ScriptDir%" --python "%VENV_PY%" --quiet
+if !errorlevel! neq 0 (
+    echo [ERROR] Failed to install comfyui-installer.
     pause
     exit /b 1
 )
 
-for /f "tokens=2 delims= " %%v in ('python --version 2^>^&1') do set "PY_VERSION=%%v"
-echo [INFO] Found Python %PY_VERSION%
-
-:: --- Check if installer is already installed ---
-set "INSTALLED_VER="
-for /f "delims=" %%v in ('python -c "from src import __version__; print(__version__)" 2^>nul') do set "INSTALLED_VER=%%v"
-
-:: Get repo version
-set "REPO_VER="
-for /f "delims=" %%v in ('python -c "import re; m=re.search(r'__version__\s*=\s*\"(.+?)\"', open(r'%InstallPath%\src\__init__.py').read()); print(m.group(1) if m else '')" 2^>nul') do set "REPO_VER=%%v"
-
-if defined INSTALLED_VER (
-    echo [INFO] Installed version: %INSTALLED_VER%
-    echo [INFO] Repo version:      %REPO_VER%
-
-    if "%INSTALLED_VER%"=="%REPO_VER%" (
-        echo [INFO] Installer is up to date.
-        echo.
-    ) else (
-        echo.
-        echo [UPDATE] A new version of the installer is available!
-        echo          %INSTALLED_VER% -^> %REPO_VER%
-        echo.
-        set /p "UPDATE_CHOICE=Do you want to update the installer? (Y/N): "
-        if /i "!UPDATE_CHOICE!"=="Y" (
-            echo [INFO] Updating installer...
-            pip install -e "%InstallPath%" --quiet
-            echo [INFO] Updated to %REPO_VER%.
-        ) else (
-            echo [INFO] Continuing with current version %INSTALLED_VER%.
-        )
-        echo.
-    )
-) else (
-    echo [INFO] First install — setting up comfyui-installer...
-    pip install -e "%InstallPath%" --quiet
-    echo [INFO] Installer ready.
-    echo.
-)
-
-:: --- Launch the installer ---
+:: ============================================================================
+:: Step 5: Launch the installer CLI
+:: ============================================================================
 echo [INFO] Starting installation...
 echo.
-comfyui-installer install --path "%InstallPath%"
+"%VENV_PY%" -m src.cli install --path "%InstallPath%"
 
 pause

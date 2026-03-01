@@ -7,7 +7,7 @@
 
 ## Project Overview
 
-Cross-platform Python CLI installer for ComfyUI. Automates: Python environment setup (venv/conda), ComfyUI cloning, custom node installation, GPU optimization (Triton/SageAttention), and model downloads. Key characteristic: **junction-based architecture** keeps user data separate from the ComfyUI git repo for clean updates.
+Cross-platform Python CLI installer for ComfyUI. Automates: Python environment setup (venv/conda), ComfyUI cloning, custom node installation, GPU optimization (Triton/SageAttention), and model downloads. Key characteristics: **junction-based architecture** keeps user data separate from the ComfyUI git repo for clean updates, and **uv-based bootstrap** requires zero system prerequisites (no Python, pip, or conda needed).
 
 ## Build / Test / Run
 
@@ -27,12 +27,15 @@ comfyui-installer install --path C:\path\to\install -v
 
 ## Architecture
 
-### Two-Phase Installation
+### Bootstrap + Two-Phase Installation
 
-| Phase | File | Purpose |
+The installer uses a **three-layer architecture**: a zero-dependency bootstrap (`Install.bat`/`.sh`) that downloads `uv` and creates a Python environment, then two phases of Python-based installation.
+
+| Layer | File | Purpose |
 |-------|------|---------|
-| **Phase 1** | `src/installer/phase1.py` | System checks, Python detection, venv/conda setup, tool installs (aria2, uv, git) |
-| **Phase 2** | `src/installer/phase2.py` | ComfyUI clone, junctions, pip packages, custom nodes, wheels, optimizations, launcher generation |
+| **Bootstrap** | `Install.bat` / `Install.sh` | Downloads `uv`, creates venv with Python 3.13 (auto-downloaded if absent), installs CLI |
+| **Phase 1** | `src/installer/phase1.py` | System checks, venv/conda setup (reuses bootstrap venv or creates new), tool installs (aria2, git) |
+| **Phase 2** | `src/installer/phase2.py` | ComfyUI clone, junctions, pip packages, custom nodes, CLI install in env, launcher generation |
 
 ### Junction-Based Architecture
 
@@ -148,8 +151,8 @@ torch_url = "https://download.pytorch.org/whl/cu130"
 | `scripts/dependencies.json` | URLs, packages, tools config |
 | `scripts/custom_nodes.json` | Node manifest (additive only) |
 | `scripts/nunchaku_versions.json` | Version matrix for nunchaku node |
-| `Install.bat` / `Install.sh` | Bootstrap entry points for users |
-| `bootstrap/` | Legacy bootstrap scripts |
+| `Install.bat` / `Install.sh` | Zero-dependency bootstrap: downloads uv, creates venv, launches CLI |
+| `bootstrap/` | Legacy bootstrap scripts (kept for reference). |
 | `tests/` | pytest test suite |
 
 ## Critical Files

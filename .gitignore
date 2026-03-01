@@ -6,6 +6,8 @@ __pycache__/
 *.egg-info/
 dist/
 build/
+scripts/uv/
+scripts/venv/
 
 # Logs
 *.log
