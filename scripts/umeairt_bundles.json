@@ -14,8 +14,8 @@
                     "filename": "flux1-dev-fp16.safetensors"
                 },
                 {
-                    "url": "/clip/t5xxl_fp16.safetensors",
-                    "path_type": "clip",
+                    "url": "/text_encoders/T5/t5xxl_fp16.safetensors",
+                    "path_type": "text_encoders_t5",
                     "filename": "t5xxl_fp16.safetensors"
                 },
                 {
@@ -39,8 +39,8 @@
                     "filename": "flux1-dev-fp8.safetensors"
                 },
                 {
-                    "url": "/clip/t5xxl_fp8_e4m3fn.safetensors",
-                    "path_type": "clip",
+                    "url": "/text_encoders/T5/t5xxl_fp8_e4m3fn.safetensors",
+                    "path_type": "text_encoders_t5",
                     "filename": "t5xxl_fp8_e4m3fn.safetensors"
                 },
                 {
@@ -64,8 +64,8 @@
                     "filename": "flux1-dev-Q8_0.gguf"
                 },
                 {
-                    "url": "/clip/t5-v1_1-xxl-encoder-Q8_0.gguf",
-                    "path_type": "clip",
+                    "url": "/text_encoders/T5/t5-v1_1-xxl-encoder-Q8_0.gguf",
+                    "path_type": "text_encoders_t5",
                     "filename": "t5-v1_1-xxl-encoder-Q8_0.gguf"
                 },
                 {
@@ -89,8 +89,8 @@
                     "filename": "flux1-dev-Q6_K.gguf"
                 },
                 {
-                    "url": "/clip/t5-v1_1-xxl-encoder-Q6_K.gguf",
-                    "path_type": "clip",
+                    "url": "/text_encoders/T5/t5-v1_1-xxl-encoder-Q6_K.gguf",
+                    "path_type": "text_encoders_t5",
                     "filename": "t5-v1_1-xxl-encoder-Q6_K.gguf"
                 },
                 {
@@ -114,8 +114,8 @@
                     "filename": "flux1-dev-Q5_K_S.gguf"
                 },
                 {
-                    "url": "/clip/t5-v1_1-xxl-encoder-Q5_K_M.gguf",
-                    "path_type": "clip",
+                    "url": "/text_encoders/T5/t5-v1_1-xxl-encoder-Q5_K_M.gguf",
+                    "path_type": "text_encoders_t5",
                     "filename": "t5-v1_1-xxl-encoder-Q5_K_M.gguf"
                 },
                 {
@@ -139,8 +139,8 @@
                     "filename": "flux1-dev-Q4_K_S.gguf"
                 },
                 {
-                    "url": "/clip/t5-v1_1-xxl-encoder-Q4_K_S.gguf",
-                    "path_type": "clip",
+                    "url": "/text_encoders/T5/t5-v1_1-xxl-encoder-Q4_K_S.gguf",
+                    "path_type": "text_encoders_t5",
                     "filename": "t5-v1_1-xxl-encoder-Q4_K_S.gguf"
                 },
                 {
@@ -164,8 +164,8 @@
                     "filename": "flux1-dev-Q3_K_S.gguf"
                 },
                 {
-                    "url": "/clip/t5-v1_1-xxl-encoder-Q3_K_S.gguf",
-                    "path_type": "clip",
+                    "url": "/text_encoders/T5/t5-v1_1-xxl-encoder-Q3_K_S.gguf",
+                    "path_type": "text_encoders_t5",
                     "filename": "t5-v1_1-xxl-encoder-Q3_K_S.gguf"
                 },
                 {
@@ -273,8 +273,8 @@
                     "filename": "z_image_turbo_bf16.safetensors"
                 },
                 {
-                    "url": "/clip/qwen_3_4b.safetensors",
-                    "path_type": "clip",
+                    "url": "/text_encoders/QWEN/qwen_3_4b.safetensors",
+                    "path_type": "text_encoders_qwen",
                     "filename": "qwen_3_4b.safetensors"
                 },
                 {
@@ -293,8 +293,8 @@
                     "filename": "z_image_turbo_bf16.safetensors"
                 },
                 {
-                    "url": "/clip/qwen_3_4b.safetensors",
-                    "path_type": "clip",
+                    "url": "/text_encoders/QWEN/qwen_3_4b.safetensors",
+                    "path_type": "text_encoders_qwen",
                     "filename": "qwen_3_4b.safetensors"
                 },
                 {
@@ -313,8 +313,8 @@
                     "filename": "z_image_turbo-Q8_0.gguf"
                 },
                 {
-                    "url": "/clip/Qwen3-4B-UD-Q8_K_XL.gguf",
-                    "path_type": "clip",
+                    "url": "/text_encoders/QWEN/Qwen3-4B-UD-Q8_K_XL.gguf",
+                    "path_type": "text_encoders_qwen",
                     "filename": "Qwen3-4B-UD-Q8_K_XL.gguf"
                 },
                 {
@@ -333,8 +333,8 @@
                     "filename": "z_image_turbo-Q6_K.gguf"
                 },
                 {
-                    "url": "/clip/Qwen3-4B-UD-Q6_K_XL.gguf",
-                    "path_type": "clip",
+                    "url": "/text_encoders/QWEN/Qwen3-4B-UD-Q6_K_XL.gguf",
+                    "path_type": "text_encoders_qwen",
                     "filename": "Qwen3-4B-UD-Q6_K_XL.gguf"
                 },
                 {
@@ -353,8 +353,8 @@
                     "filename": "z_image_turbo-Q5_K_S.gguf"
                 },
                 {
-                    "url": "/clip/Qwen3-4B-UD-Q5_K_XL.gguf",
-                    "path_type": "clip",
+                    "url": "/text_encoders/QWEN/Qwen3-4B-UD-Q5_K_XL.gguf",
+                    "path_type": "text_encoders_qwen",
                     "filename": "Qwen3-4B-UD-Q5_K_XL.gguf"
                 },
                 {
@@ -373,8 +373,8 @@
                     "filename": "z_image_turbo-Q4_K_S.gguf"
                 },
                 {
-                    "url": "/clip/Qwen3-4B-UD-Q4_K_XL.gguf",
-                    "path_type": "clip",
+                    "url": "/text_encoders/QWEN/Qwen3-4B-UD-Q4_K_XL.gguf",
+                    "path_type": "text_encoders_qwen",
                     "filename": "Qwen3-4B-UD-Q4_K_XL.gguf"
                 },
                 {
@@ -393,8 +393,8 @@
                     "filename": "z_image_turbo-Q3_K_S.gguf"
                 },
                 {
-                    "url": "/clip/Qwen3-4B-UD-Q3_K_XL.gguf",
-                    "path_type": "clip",
+                    "url": "/text_encoders/QWEN/Qwen3-4B-UD-Q3_K_XL.gguf",
+                    "path_type": "text_encoders_qwen",
                     "filename": "Qwen3-4B-UD-Q3_K_XL.gguf"
                 },
                 {

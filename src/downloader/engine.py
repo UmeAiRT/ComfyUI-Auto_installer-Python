@@ -47,6 +47,12 @@ PATH_TYPE_MAP: dict[str, str] = {
     # Shared
     "clip": "clip",
     "clip_vision": "clip_vision",
+    "text_encoders_t5": "text_encoders/T5",
+    "text_encoders_qwen": "text_encoders/QWEN",
+    "text_encoders_llama": "text_encoders/LLAMA",
+    "text_encoders_gemma": "text_encoders/GEMMA-3",
+    "text_encoders_ltx": "text_encoders/LTX-2",
+    "clip_vision": "clip_vision",
     "vae": "vae",
     "lora": "loras",
     "lora_flux": "loras/FLUX",
