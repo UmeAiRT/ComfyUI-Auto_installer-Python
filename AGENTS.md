@@ -9,6 +9,20 @@
 
 Cross-platform Python CLI installer for ComfyUI. Automates: Python environment setup (venv/conda), ComfyUI cloning, custom node installation, GPU optimization (Triton/SageAttention), and model downloads. Key characteristics: **junction-based architecture** keeps user data separate from the ComfyUI git repo for clean updates, and **uv-based bootstrap** requires zero system prerequisites (no Python, pip, or conda needed).
 
+## Ecosystem (Sibling Projects on `Y:\`)
+
+This project is part of a 6-project ecosystem. **Direct** relationships:
+
+| Project | Relationship |
+|---------|-------------|
+| `ComfyUI-Auto_installer-Assets` | Installer downloads models from this HuggingFace repo (URLs in `scripts/dependencies.json`) |
+| `ComfyUI-UmeAiRT-Toolkit` | Installed as a custom node via `scripts/custom_nodes.json` |
+| `ComfyUI-UmeAiRT-Sync` | Installed as a custom node; auto-syncs workflows at ComfyUI startup |
+| `ComfyUI-Workflows` | Indirectly distributed via the Sync node; workflows require Toolkit nodes |
+| `UmeAiRT-NAS-Utils` | Orchestration hub — may run inventory/validation scripts against this project |
+
+> ⚠️ **Impact awareness**: Changes to `dependencies.json` or `custom_nodes.json` directly affect what gets downloaded from the Assets and Toolkit repos.
+
 ## Build / Test / Run
 
 ```bash
