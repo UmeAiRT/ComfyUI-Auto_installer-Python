@@ -1,7 +1,7 @@
 name: CI Tests
 on:
   push:
-    branches: [main, develop]
+    branches: [main, develop, python-rewrite]
     paths:
       - 'src/**'
       - 'tests/**'
