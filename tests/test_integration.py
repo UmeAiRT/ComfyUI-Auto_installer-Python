@@ -16,11 +16,14 @@ def test_dependencies_parsing():
 
 
 def test_platform_detection():
-    """Platform factory should return WindowsPlatform on Windows."""
+    """Platform factory should return the correct platform for the current OS."""
     from src.platform.base import get_platform
 
     p = get_platform()
-    assert p.__class__.__name__ == "WindowsPlatform"
+    if sys.platform == "win32":
+        assert p.__class__.__name__ == "WindowsPlatform"
+    else:
+        assert p.__class__.__name__ == "LinuxPlatform"
 
 
 def test_python_detection():
