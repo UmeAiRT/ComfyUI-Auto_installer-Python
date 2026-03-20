@@ -1,4 +1,8 @@
 name: CI Tests
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 on:
   push:
     branches: [main, develop, python-rewrite]
@@ -53,10 +57,11 @@ jobs:
 
   # ── Unit Tests (matrix across Python versions) ─────────────────
   test:
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
+        os: [ubuntu-latest, windows-latest]
         python-version: ['3.11', '3.12', '3.13']
 
     steps:
@@ -77,8 +82,11 @@ jobs:
 
   # ── Coverage (single version, after tests) ─────────────────────
   coverage:
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
     needs: test
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest]
     steps:
       - uses: actions/checkout@v4
 
@@ -95,4 +103,4 @@ jobs:
       - name: Run tests with coverage
         run: |
           coverage run --source=src -m pytest tests/ -q
-          coverage report -m --skip-covered
+          coverage report -m --skip-covered --fail-under=45

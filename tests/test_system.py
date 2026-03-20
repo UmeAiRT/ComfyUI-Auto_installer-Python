@@ -10,6 +10,8 @@ from src.installer.system import (
     MIN_GIT_VERSION,
     _parse_git_version,
     check_prerequisites,
+    ensure_aria2,
+    install_git,
 )
 
 if TYPE_CHECKING:
@@ -74,6 +76,88 @@ class TestCheckPrerequisites:
         ):
             result = check_prerequisites(log)
             assert result is True
+
+
+class TestInstallGit:
+    """Tests for install_git."""
+
+    def test_non_windows_returns_false(self) -> None:
+        """On non-Windows, install_git should return False."""
+        log = MagicMock()
+        with patch("src.installer.system.sys") as mock_sys:
+            mock_sys.platform = "linux"
+            assert install_git(log) is False
+
+    def test_user_declines_returns_false(self) -> None:
+        """If user declines install prompt, should return False."""
+        log = MagicMock()
+        with (
+            patch("src.installer.system.sys") as mock_sys,
+            patch("src.installer.system.confirm", return_value=False),
+        ):
+            mock_sys.platform = "win32"
+            assert install_git(log) is False
+
+    def test_successful_install(self) -> None:
+        """Should download and install Git successfully on Windows."""
+        log = MagicMock()
+        mock_result = MagicMock()
+        mock_result.returncode = 0
+
+        with (
+            patch("src.installer.system.sys") as mock_sys,
+            patch("src.installer.system.confirm", return_value=True),
+            patch("src.installer.system.download_file"),
+            patch("src.installer.system.subprocess.run", return_value=mock_result),
+        ):
+            mock_sys.platform = "win32"
+            assert install_git(log) is True
+
+    def test_failed_install(self) -> None:
+        """Should return False if installer exits with non-zero."""
+        log = MagicMock()
+        mock_result = MagicMock()
+        mock_result.returncode = 1
+
+        with (
+            patch("src.installer.system.sys") as mock_sys,
+            patch("src.installer.system.confirm", return_value=True),
+            patch("src.installer.system.download_file"),
+            patch("src.installer.system.subprocess.run", return_value=mock_result),
+        ):
+            mock_sys.platform = "win32"
+            assert install_git(log) is False
+
+
+class TestEnsureAria2:
+    """Tests for ensure_aria2."""
+
+    def test_found_in_system_path(self, tmp_path: Path) -> None:
+        """Returns True if aria2c is already in PATH."""
+        log = MagicMock()
+        with patch("src.installer.system.check_command_exists", return_value=True):
+            assert ensure_aria2(tmp_path, log) is True
+
+    def test_found_in_local_scripts(self, tmp_path: Path) -> None:
+        """Returns True if aria2c exists in scripts/aria2/."""
+        log = MagicMock()
+        aria2_dir = tmp_path / "scripts" / "aria2"
+        aria2_dir.mkdir(parents=True)
+        exe_name = "aria2c.exe" if __import__("sys").platform == "win32" else "aria2c"
+        (aria2_dir / exe_name).write_text("fake")
+
+        with patch("src.installer.system.check_command_exists", return_value=False):
+            assert ensure_aria2(tmp_path, log) is True
+
+    def test_not_found_linux_returns_false(self, tmp_path: Path) -> None:
+        """On Linux without aria2, should suggest install and return False."""
+        log = MagicMock()
+        with (
+            patch("src.installer.system.check_command_exists", return_value=False),
+            patch("src.installer.system.sys") as mock_sys,
+        ):
+            mock_sys.platform = "linux"
+            assert ensure_aria2(tmp_path, log) is False
 
 
 class TestZipSlipPrevention:

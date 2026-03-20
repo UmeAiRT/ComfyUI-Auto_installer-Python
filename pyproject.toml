@@ -61,6 +61,7 @@ ignore = ["B008"]  # typer requires function calls in argument defaults
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["."]
+asyncio_mode = "strict"
 
 [tool.bandit]
 exclude_dirs = ["tests"]
