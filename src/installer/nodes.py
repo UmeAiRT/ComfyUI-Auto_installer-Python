@@ -29,13 +29,25 @@ if TYPE_CHECKING:
     from src.utils.logging import InstallerLogger
 
 
+# Tier hierarchy — each tier includes all nodes from lower tiers.
+TIER_HIERARCHY: dict[str, set[str]] = {
+    "minimal": {"minimal"},
+    "umeairt": {"minimal", "umeairt"},
+    "full": {"minimal", "umeairt", "full"},
+}
+
+VALID_TIERS = list(TIER_HIERARCHY.keys())
+
+
 class NodeEntry(BaseModel):
     """A single custom node definition in the manifest.
 
     Attributes:
         name: Directory name for the node (used as clone target).
         url: Git repository URL.
-        required: If ``True``, installed before optional nodes.
+        tier: Bundle tier — ``"minimal"``, ``"umeairt"``, or
+            ``"full"`` (default).  Hierarchical: each tier includes
+            nodes from all lower tiers.
         requirements: Relative path to a ``requirements.txt`` inside
             the cloned directory (e.g. ``"requirements.txt"``).
         subfolder: If set, the node lives inside another node's
@@ -45,16 +57,38 @@ class NodeEntry(BaseModel):
 
     name: str
     url: str
-    required: bool = False
+    tier: str = "full"
     requirements: str | None = None
     subfolder: str | None = None
     note: str | None = None
+
+    # v2 compat — ignored if tier is set
+    required: bool = False
 
 
 class NodeManifest(BaseModel):
     """The custom_nodes.json manifest."""
 
     nodes: list[NodeEntry] = Field(default_factory=list)
+
+
+def filter_by_tier(manifest: NodeManifest, tier: str) -> NodeManifest:
+    """Return a new manifest containing only nodes for the given tier.
+
+    Each tier includes all nodes from lower tiers::
+
+        minimal ⊂ umeairt ⊂ full
+
+    Args:
+        manifest: The full manifest.
+        tier: One of ``"minimal"``, ``"umeairt"``, ``"full"``.
+
+    Returns:
+        A filtered NodeManifest.
+    """
+    allowed = TIER_HIERARCHY.get(tier, TIER_HIERARCHY["full"])
+    filtered = [n for n in manifest.nodes if n.tier in allowed]
+    return NodeManifest(nodes=filtered)
 
 
 def load_manifest(path: Path) -> NodeManifest:

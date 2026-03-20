@@ -122,6 +122,8 @@ def install_custom_nodes(
     comfy_path: Path,
     install_path: Path,
     log: InstallerLogger,
+    *,
+    node_tier: str = "full",
 ) -> None:
     """Install custom nodes from ``custom_nodes.json`` (additive-only).
 
@@ -137,9 +139,11 @@ def install_custom_nodes(
         comfy_path: ComfyUI repository directory.
         install_path: Root installation directory.
         log: Installer logger for user-facing messages.
+        node_tier: Bundle tier — ``"minimal"``, ``"umeairt"``,
+            or ``"full"`` (default).
     """
     from src.installer.environment import find_source_scripts
-    from src.installer.nodes import install_all_nodes, load_manifest
+    from src.installer.nodes import filter_by_tier, install_all_nodes, load_manifest
 
     scripts_dir = install_path / "scripts"
     custom_nodes_dir = comfy_path / "custom_nodes"
@@ -156,6 +160,7 @@ def install_custom_nodes(
         return
 
     manifest = load_manifest(manifest_path)
+    manifest = filter_by_tier(manifest, node_tier)
     install_all_nodes(manifest, custom_nodes_dir, python_exe, log)
 
     # Copy nunchaku_versions.json into the nunchaku node directory

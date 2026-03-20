@@ -57,6 +57,27 @@ echo "[INFO] Environment type: $INSTALL_TYPE"
 echo ""
 
 # ============================================================================
+# Step 1.6: Ask for custom nodes bundle
+# ============================================================================
+NODE_TIER="umeairt"
+echo "Select custom nodes bundle:"
+echo "  1: Minimal   - ComfyUI-Manager only"
+echo "  2: UmeAiRT   - Manager + UmeAiRT Toolkit (Default, Recommended)"
+echo "  3: Full      - All 34 nodes"
+echo ""
+read -rp "Choice (1, 2 or 3, Enter for 2): " NODE_CHOICE
+
+case "$NODE_CHOICE" in
+    1) NODE_TIER="minimal" ;;
+    3) NODE_TIER="full" ;;
+    *) NODE_TIER="umeairt" ;;
+esac
+
+echo ""
+echo "[INFO] Nodes bundle: $NODE_TIER"
+echo ""
+
+# ============================================================================
 # Step 2: Ensure uv is available
 # ============================================================================
 if ! command -v uv &>/dev/null; then
@@ -103,4 +124,4 @@ uv pip install -e "$SCRIPT_DIR" --python "$VENV_PY" --quiet
 # ============================================================================
 echo "[INFO] Starting installation..."
 echo ""
-"$VENV_PY" -m src.cli install --path "$INSTALL_PATH" --type "$INSTALL_TYPE"
+"$VENV_PY" -m src.cli install --path "$INSTALL_PATH" --type "$INSTALL_TYPE" --nodes "$NODE_TIER"

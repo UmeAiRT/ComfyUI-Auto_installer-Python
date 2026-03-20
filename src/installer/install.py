@@ -67,6 +67,7 @@ def run_install(
     install_type: str = "venv",
     *,
     verbose: bool = False,
+    node_tier: str = "full",
 ) -> None:
     """Run the complete ComfyUI installation in 12 unified steps.
 
@@ -81,6 +82,8 @@ def run_install(
             ``"conda"`` (not yet implemented).
         verbose: If ``True``, show full subprocess output during
             installs and git clones.
+        node_tier: Custom nodes bundle tier — ``"minimal"``,
+            ``"umeairt"``, or ``"full"`` (default).
 
     Raises:
         SystemExit: On missing prerequisites or fatal errors.
@@ -156,9 +159,9 @@ def run_install(
     install_python_packages(python_exe, deps, log)
     install_wheels(python_exe, install_path, deps, log)
 
-    # ── Step 9: Custom Nodes ──────────────────────────────────────
-    log.step("Custom Nodes")
-    install_custom_nodes(python_exe, comfy_path, install_path, log)
+    # ── Step 9: Custom Nodes ──────────────────────────────────────────
+    log.step(f"Custom Nodes ({node_tier})")
+    install_custom_nodes(python_exe, comfy_path, install_path, log, node_tier=node_tier)
 
     # ── Step 10: Performance Optimizations ────────────────────────
     log.step("Performance Optimizations")

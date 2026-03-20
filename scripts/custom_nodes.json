@@ -1,173 +1,210 @@
 {
     "_meta": {
-        "version": 2,
-        "description": "UmeAiRT curated node pack — additive only, never removes user-installed nodes"
+        "version": 3,
+        "description": "UmeAiRT curated node pack — additive only, never removes user-installed nodes",
+        "tiers": {
+            "minimal": "ComfyUI-Manager only — bare minimum",
+            "umeairt": "Manager + UmeAiRT Toolkit — recommended",
+            "full": "All nodes — maximum compatibility"
+        }
     },
     "nodes": [
         {
             "name": "ComfyUI-Manager",
             "url": "https://github.com/ltdrdata/ComfyUI-Manager.git",
-            "required": true,
+            "tier": "minimal",
             "requirements": "requirements.txt",
             "note": "Required for node management UI and CLI"
         },
         {
-            "name": "ComfyUI-Impact-Pack",
-            "url": "https://github.com/ltdrdata/ComfyUI-Impact-Pack.git",
-            "requirements": "requirements.txt"
-        },
-        {
-            "name": "ComfyUI-Impact-Subpack",
-            "url": "https://github.com/ltdrdata/ComfyUI-Impact-Subpack.git",
-            "subfolder": "ComfyUI-Impact-Pack/impact_subpack",
-            "requirements": "requirements.txt"
-        },
-        {
-            "name": "ComfyUI-GGUF",
-            "url": "https://github.com/city96/ComfyUI-GGUF.git",
-            "requirements": "requirements.txt"
-        },
-        {
-            "name": "ComfyUI-mxToolkit",
-            "url": "https://github.com/Smirnov75/ComfyUI-mxToolkit.git"
-        },
-        {
-            "name": "ComfyUI-Custom-Scripts",
-            "url": "https://github.com/pythongosssss/ComfyUI-Custom-Scripts.git"
-        },
-        {
-            "name": "ComfyUI-KJNodes",
-            "url": "https://github.com/kijai/ComfyUI-KJNodes.git",
-            "requirements": "requirements.txt"
-        },
-        {
-            "name": "ComfyUI-WanVideoWrapper",
-            "url": "https://github.com/kijai/ComfyUI-WanVideoWrapper.git",
-            "requirements": "requirements.txt"
-        },
-        {
-            "name": "ComfyUI-VideoHelperSuite",
-            "url": "https://github.com/Kosinkadink/ComfyUI-VideoHelperSuite.git",
-            "requirements": "requirements.txt"
-        },
-        {
-            "name": "ComfyUI-Frame-Interpolation",
-            "url": "https://github.com/Fannovel16/ComfyUI-Frame-Interpolation.git",
-            "requirements": "requirements-no-cupy.txt"
-        },
-        {
-            "name": "rgthree-comfy",
-            "url": "https://github.com/rgthree/rgthree-comfy.git",
-            "requirements": "requirements.txt"
-        },
-        {
-            "name": "ComfyUI-Easy-Use",
-            "url": "https://github.com/yolain/ComfyUI-Easy-Use.git",
-            "requirements": "requirements.txt"
-        },
-        {
-            "name": "ComfyUI-HunyuanVideoMultiLora",
-            "url": "https://github.com/facok/ComfyUI-HunyuanVideoMultiLora.git"
-        },
-        {
-            "name": "ComfyUI-Florence2",
-            "url": "https://github.com/kijai/ComfyUI-Florence2.git",
-            "requirements": "requirements.txt"
-        },
-        {
-            "name": "ComfyUI-MultiGPU",
-            "url": "https://github.com/pollockjj/ComfyUI-MultiGPU.git"
-        },
-        {
-            "name": "ComfyUI-WanStartEndFramesNative",
-            "url": "https://github.com/Flow-two/ComfyUI-WanStartEndFramesNative.git"
-        },
-        {
-            "name": "ComfyUI-Image-Saver",
-            "url": "https://github.com/alexopus/ComfyUI-Image-Saver.git",
-            "requirements": "requirements.txt"
-        },
-        {
-            "name": "ComfyUI_UltimateSDUpscale",
-            "url": "https://github.com/ssitu/ComfyUI_UltimateSDUpscale.git"
-        },
-        {
-            "name": "comfyui_controlnet_aux",
-            "url": "https://github.com/Fannovel16/comfyui_controlnet_aux.git",
-            "requirements": "requirements.txt"
-        },
-        {
-            "name": "x-flux-comfyui",
-            "url": "https://github.com/XLabs-AI/x-flux-comfyui.git",
-            "requirements": "requirements.txt"
-        },
-        {
-            "name": "ComfyUI-Detail-Daemon",
-            "url": "https://github.com/Jonseed/ComfyUI-Detail-Daemon.git",
-            "requirements": "requirements.txt"
-        },
-        {
-            "name": "ComfyUI-Crystools",
-            "url": "https://github.com/crystian/ComfyUI-Crystools.git",
-            "requirements": "requirements.txt"
-        },
-        {
-            "name": "ComfyUI-nunchaku",
-            "url": "https://github.com/mit-han-lab/ComfyUI-nunchaku",
-            "requirements": "requirements.txt"
-        },
-        {
-            "name": "wlsh_nodes",
-            "url": "https://github.com/wallish77/wlsh_nodes",
-            "requirements": "requirements.txt"
-        },
-        {
-            "name": "ComfyUI_essentials",
-            "url": "https://github.com/cubiq/ComfyUI_essentials",
-            "requirements": "requirements.txt"
-        },
-        {
-            "name": "ComfyUI-wanBlockswap",
-            "url": "https://github.com/orssorbit/ComfyUI-wanBlockswap"
-        },
-        {
-            "name": "Derfuu_ComfyUI_ModdedNodes",
-            "url": "https://github.com/Derfuu/Derfuu_ComfyUI_ModdedNodes"
-        },
-        {
-            "name": "ComfyUI_LayerStyle",
-            "url": "https://github.com/chflame163/ComfyUI_LayerStyle",
-            "requirements": "requirements.txt"
-        },
-        {
-            "name": "ComfyUI-Upscaler-Tensorrt",
-            "url": "https://github.com/yuvraj108c/ComfyUI-Upscaler-Tensorrt",
-            "requirements": "requirements.txt"
-        },
-        {
-            "name": "comfyui-vrgamedevgirl",
-            "url": "https://github.com/vrgamegirl19/comfyui-vrgamedevgirl",
-            "requirements": "requirements.txt"
-        },
-        {
-            "name": "comfyui-int-and-float",
-            "url": "https://github.com/danTheMonk/comfyui-int-and-float"
-        },
-        {
-            "name": "was-node-suite-comfyui",
-            "url": "https://github.com/WASasquatch/was-node-suite-comfyui",
-            "requirements": "requirements.txt"
-        },
-        {
             "name": "ComfyUI-UmeAiRT-Sync",
             "url": "https://github.com/UmeAiRT/ComfyUI-UmeAiRT-Sync.git",
-            "required": true,
+            "tier": "umeairt",
             "requirements": "requirements.txt",
             "note": "Workflows auto-update sync"
         },
         {
             "name": "ComfyUI-UmeAiRT-Toolkit",
             "url": "https://github.com/UmeAiRT/ComfyUI-UmeAiRT-Toolkit",
+            "tier": "umeairt",
+            "requirements": "requirements.txt"
+        },
+        {
+            "name": "ComfyUI-Crystools",
+            "url": "https://github.com/crystian/ComfyUI-Crystools.git",
+            "tier": "umeairt",
+            "requirements": "requirements.txt"
+        },
+        {
+            "name": "ComfyUI-nunchaku",
+            "url": "https://github.com/mit-han-lab/ComfyUI-nunchaku",
+            "tier": "umeairt",
+            "requirements": "requirements.txt"
+        },
+        {
+            "name": "ComfyUI-Impact-Pack",
+            "url": "https://github.com/ltdrdata/ComfyUI-Impact-Pack.git",
+            "tier": "full",
+            "requirements": "requirements.txt"
+        },
+        {
+            "name": "ComfyUI-Impact-Subpack",
+            "url": "https://github.com/ltdrdata/ComfyUI-Impact-Subpack.git",
+            "tier": "full",
+            "subfolder": "ComfyUI-Impact-Pack/impact_subpack",
+            "requirements": "requirements.txt"
+        },
+        {
+            "name": "ComfyUI-GGUF",
+            "url": "https://github.com/city96/ComfyUI-GGUF.git",
+            "tier": "full",
+            "requirements": "requirements.txt"
+        },
+        {
+            "name": "ComfyUI-mxToolkit",
+            "url": "https://github.com/Smirnov75/ComfyUI-mxToolkit.git",
+            "tier": "full"
+        },
+        {
+            "name": "ComfyUI-Custom-Scripts",
+            "url": "https://github.com/pythongosssss/ComfyUI-Custom-Scripts.git",
+            "tier": "full"
+        },
+        {
+            "name": "ComfyUI-KJNodes",
+            "url": "https://github.com/kijai/ComfyUI-KJNodes.git",
+            "tier": "full",
+            "requirements": "requirements.txt"
+        },
+        {
+            "name": "ComfyUI-WanVideoWrapper",
+            "url": "https://github.com/kijai/ComfyUI-WanVideoWrapper.git",
+            "tier": "full",
+            "requirements": "requirements.txt"
+        },
+        {
+            "name": "ComfyUI-VideoHelperSuite",
+            "url": "https://github.com/Kosinkadink/ComfyUI-VideoHelperSuite.git",
+            "tier": "full",
+            "requirements": "requirements.txt"
+        },
+        {
+            "name": "ComfyUI-Frame-Interpolation",
+            "url": "https://github.com/Fannovel16/ComfyUI-Frame-Interpolation.git",
+            "tier": "full",
+            "requirements": "requirements-no-cupy.txt"
+        },
+        {
+            "name": "rgthree-comfy",
+            "url": "https://github.com/rgthree/rgthree-comfy.git",
+            "tier": "full",
+            "requirements": "requirements.txt"
+        },
+        {
+            "name": "ComfyUI-Easy-Use",
+            "url": "https://github.com/yolain/ComfyUI-Easy-Use.git",
+            "tier": "full",
+            "requirements": "requirements.txt"
+        },
+        {
+            "name": "ComfyUI-HunyuanVideoMultiLora",
+            "url": "https://github.com/facok/ComfyUI-HunyuanVideoMultiLora.git",
+            "tier": "full"
+        },
+        {
+            "name": "ComfyUI-Florence2",
+            "url": "https://github.com/kijai/ComfyUI-Florence2.git",
+            "tier": "full",
+            "requirements": "requirements.txt"
+        },
+        {
+            "name": "ComfyUI-MultiGPU",
+            "url": "https://github.com/pollockjj/ComfyUI-MultiGPU.git",
+            "tier": "full"
+        },
+        {
+            "name": "ComfyUI-WanStartEndFramesNative",
+            "url": "https://github.com/Flow-two/ComfyUI-WanStartEndFramesNative.git",
+            "tier": "full"
+        },
+        {
+            "name": "ComfyUI-Image-Saver",
+            "url": "https://github.com/alexopus/ComfyUI-Image-Saver.git",
+            "tier": "full",
+            "requirements": "requirements.txt"
+        },
+        {
+            "name": "ComfyUI_UltimateSDUpscale",
+            "url": "https://github.com/ssitu/ComfyUI_UltimateSDUpscale.git",
+            "tier": "full"
+        },
+        {
+            "name": "comfyui_controlnet_aux",
+            "url": "https://github.com/Fannovel16/comfyui_controlnet_aux.git",
+            "tier": "full",
+            "requirements": "requirements.txt"
+        },
+        {
+            "name": "x-flux-comfyui",
+            "url": "https://github.com/XLabs-AI/x-flux-comfyui.git",
+            "tier": "full",
+            "requirements": "requirements.txt"
+        },
+        {
+            "name": "ComfyUI-Detail-Daemon",
+            "url": "https://github.com/Jonseed/ComfyUI-Detail-Daemon.git",
+            "tier": "full",
+            "requirements": "requirements.txt"
+        },
+        {
+            "name": "wlsh_nodes",
+            "url": "https://github.com/wallish77/wlsh_nodes",
+            "tier": "full",
+            "requirements": "requirements.txt"
+        },
+        {
+            "name": "ComfyUI_essentials",
+            "url": "https://github.com/cubiq/ComfyUI_essentials",
+            "tier": "full",
+            "requirements": "requirements.txt"
+        },
+        {
+            "name": "ComfyUI-wanBlockswap",
+            "url": "https://github.com/orssorbit/ComfyUI-wanBlockswap",
+            "tier": "full"
+        },
+        {
+            "name": "Derfuu_ComfyUI_ModdedNodes",
+            "url": "https://github.com/Derfuu/Derfuu_ComfyUI_ModdedNodes",
+            "tier": "full"
+        },
+        {
+            "name": "ComfyUI_LayerStyle",
+            "url": "https://github.com/chflame163/ComfyUI_LayerStyle",
+            "tier": "full",
+            "requirements": "requirements.txt"
+        },
+        {
+            "name": "ComfyUI-Upscaler-Tensorrt",
+            "url": "https://github.com/yuvraj108c/ComfyUI-Upscaler-Tensorrt",
+            "tier": "full",
+            "requirements": "requirements.txt"
+        },
+        {
+            "name": "comfyui-vrgamedevgirl",
+            "url": "https://github.com/vrgamegirl19/comfyui-vrgamedevgirl",
+            "tier": "full",
+            "requirements": "requirements.txt"
+        },
+        {
+            "name": "comfyui-int-and-float",
+            "url": "https://github.com/danTheMonk/comfyui-int-and-float",
+            "tier": "full"
+        },
+        {
+            "name": "was-node-suite-comfyui",
+            "url": "https://github.com/WASasquatch/was-node-suite-comfyui",
+            "tier": "full",
             "requirements": "requirements.txt"
         }
     ]

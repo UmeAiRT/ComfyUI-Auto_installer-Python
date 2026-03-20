@@ -46,12 +46,17 @@ def install(
         "--verbose", "-v",
         help="Show detailed output (pip, git, etc.).",
     ),
+    nodes: str = typer.Option(
+        "full",
+        "--nodes", "-n",
+        help="Custom nodes bundle: 'minimal', 'umeairt', or 'full'.",
+    ),
 ) -> None:
     """Install ComfyUI with all dependencies and custom nodes."""
     from src.installer.install import run_install
 
     path = _clean_path(path)
-    run_install(path, install_type, verbose=verbose)
+    run_install(path, install_type, verbose=verbose, node_tier=nodes)
 
 
 @app.command()

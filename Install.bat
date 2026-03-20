@@ -67,6 +67,29 @@ echo [INFO] Environment type: %InstallType%
 echo.
 
 :: ============================================================================
+:: Step 1.6: Ask for custom nodes bundle
+:: ============================================================================
+set "NodeTier=umeairt"
+echo Select custom nodes bundle:
+echo   1: Minimal   - ComfyUI-Manager only
+echo   2: UmeAiRT   - Manager + UmeAiRT Toolkit (Default, Recommended)
+echo   3: Full      - All 34 nodes
+echo.
+set /p "NodeChoice=Choice (1, 2 or 3, Enter for 2): "
+
+if "%NodeChoice%"=="1" (
+    set "NodeTier=minimal"
+) else if "%NodeChoice%"=="3" (
+    set "NodeTier=full"
+) else (
+    set "NodeTier=umeairt"
+)
+
+echo.
+echo [INFO] Nodes bundle: %NodeTier%
+echo.
+
+:: ============================================================================
 :: Step 2: Ensure uv is available (standalone binary, no prerequisites)
 :: ============================================================================
 set "UV_DIR=%InstallPath%\scripts\uv"
@@ -127,6 +150,6 @@ if !errorlevel! neq 0 (
 :: ============================================================================
 echo [INFO] Starting installation...
 echo.
-"%VENV_PY%" -m src.cli install --path "%InstallPath%" --type "%InstallType%"
+"%VENV_PY%" -m src.cli install --path "%InstallPath%" --type "%InstallType%" --nodes "%NodeTier%"
 
 pause
