@@ -136,10 +136,7 @@ def install_wheels(
         finally:
             wheel_path.unlink(missing_ok=True)
 
-    # Ensure numpy 2.x ABI compatibility for compiled wheels (insightface, etc.)
-    # Later installation steps (custom node requirements) may downgrade numpy,
-    # breaking binary compatibility with wheels compiled against numpy 2.x.
-    uv_install(python_exe, ["numpy>=2.0"], upgrade=True, ignore_errors=True)
+
 
 
 def install_custom_nodes(

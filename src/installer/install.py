@@ -157,11 +157,13 @@ def run_install(
     # ── Step 8: Python Packages ───────────────────────────────────
     log.step("Installing Python Packages")
     install_python_packages(python_exe, deps, log)
-    install_wheels(python_exe, install_path, deps, log)
 
     # ── Step 9: Custom Nodes ──────────────────────────────────────────
     log.step(f"Custom Nodes ({node_tier})")
     install_custom_nodes(python_exe, comfy_path, install_path, log, node_tier=node_tier)
+
+    # ── Pre-built Wheels (after nodes to avoid dep conflicts) ──────
+    install_wheels(python_exe, install_path, deps, log)
 
     # ── Step 10: Performance Optimizations ────────────────────────
     log.step("Performance Optimizations")
