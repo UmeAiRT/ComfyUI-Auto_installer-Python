@@ -44,11 +44,27 @@ def update_custom_nodes(
     install_path: Path,
     log: InstallerLogger,
 ) -> None:
-    """Update bundled custom nodes. User-installed nodes are NEVER touched."""
+    """Update bundled custom nodes. User-installed nodes are NEVER touched.
+
+    Always refreshes ``custom_nodes.json`` from the source repository
+    so that newly added nodes are picked up on every update.
+    """
+    import shutil
+
+    from src.installer.environment import find_source_scripts
     from src.installer.nodes import load_manifest, update_all_nodes
 
     scripts_dir = install_path / "scripts"
     manifest_path = scripts_dir / "custom_nodes.json"
+
+    # Always refresh from source to pick up newly added nodes
+    source_dir = find_source_scripts()
+    if source_dir:
+        source_manifest = source_dir / "custom_nodes.json"
+        if source_manifest.exists():
+            scripts_dir.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(source_manifest, manifest_path)
+            log.item("custom_nodes.json refreshed from source.", style="cyan")
 
     if not manifest_path.exists():
         log.warning("custom_nodes.json not found. Skipping node updates.", level=1)

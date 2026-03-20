@@ -269,8 +269,11 @@ def update_all_nodes(
     """
     log.step("Updating Custom Nodes")
 
-    # List all directories in custom_nodes
-    installed_names = {d.name for d in custom_nodes_dir.iterdir() if d.is_dir()} if custom_nodes_dir.exists() else set()
+    # List all directories in custom_nodes (ignore __pycache__ and hidden dirs)
+    installed_names = {
+        d.name for d in custom_nodes_dir.iterdir()
+        if d.is_dir() and d.name != "__pycache__" and not d.name.startswith(".")
+    } if custom_nodes_dir.exists() else set()
     manifest_names = {n.name for n in manifest.nodes}
 
     # User-installed nodes = installed but not in manifest

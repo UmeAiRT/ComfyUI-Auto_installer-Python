@@ -89,6 +89,8 @@ def _download_with_aria2c(
     url: str,
     dest: Path,
     aria2c_path: Path,
+    *,
+    quiet: bool = True,
 ) -> bool:
     """
     Download using aria2c for maximum speed.
@@ -119,6 +121,7 @@ def _download_with_aria2c(
         result = subprocess.run(
             args,
             timeout=3600,  # 1 hour timeout
+            capture_output=quiet,
         )
         if result.returncode == 0:
             return True
@@ -163,6 +166,7 @@ def download_file(
     *,
     checksum: str | None = None,
     force: bool = False,
+    quiet: bool = True,
 ) -> Path:
     """
     Download a file from one or more URLs to a destination path.
@@ -179,6 +183,7 @@ def download_file(
         dest: Destination file path.
         checksum: Optional SHA256 hex digest for verification.
         force: If True, re-download even if file exists.
+        quiet: If True (default), suppress aria2c console output.
 
     Returns:
         Path to the downloaded file.
@@ -223,7 +228,7 @@ def download_file(
             downloaded = False
 
             if aria2c:
-                downloaded = _download_with_aria2c(source_url, dest, aria2c)
+                downloaded = _download_with_aria2c(source_url, dest, aria2c, quiet=quiet)
                 if downloaded:
                     log.info("Download successful (aria2c).")
 

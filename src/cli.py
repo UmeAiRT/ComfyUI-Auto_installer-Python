@@ -24,6 +24,11 @@ app = typer.Typer(
 )
 
 
+def _clean_path(p: Path) -> Path:
+    """Strip stray quotes that Windows batch files may leave in paths."""
+    return Path(str(p).strip('"'))
+
+
 @app.command()
 def install(
     path: Path = typer.Option(
@@ -45,6 +50,7 @@ def install(
     """Install ComfyUI with all dependencies and custom nodes."""
     from src.installer.install import run_install
 
+    path = _clean_path(path)
     run_install(path, install_type, verbose=verbose)
 
 
@@ -64,6 +70,7 @@ def update(
     """Update ComfyUI, custom nodes, and dependencies."""
     from src.installer.updater import run_update
 
+    path = _clean_path(path)
     run_update(path, verbose=verbose)
 
 
@@ -105,8 +112,8 @@ def download_models(
         load_catalog,
     )
 
-    log = setup_logger(log_file=Path(str(path).strip('"')) / "logs" / "download_log.txt", verbose=verbose)
-    path = Path(str(path).strip('"'))
+    path = _clean_path(path)
+    log = setup_logger(log_file=path / "logs" / "download_log.txt", verbose=verbose)
     log.banner("UmeAiRT", "ComfyUI — Model Downloader", __version__)
 
     # Find catalog file

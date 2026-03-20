@@ -382,7 +382,7 @@ def download_variant(
         dest = resolve_file_path(models_dir, file_entry.path_type, filename)
 
         try:
-            download_file(urls, dest, checksum=sha256)
+            download_file(urls, dest, checksum=sha256, quiet=False)
             downloaded += 1
         except RuntimeError as e:
             log.error(f"Failed to download {filename}: {e}", level=2)
