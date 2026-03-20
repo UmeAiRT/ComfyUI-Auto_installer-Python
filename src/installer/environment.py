@@ -114,23 +114,6 @@ def setup_environment(
         # Return the venv python and verify it exists
         if sys.platform == "win32":
             python_exe = venv_path / "Scripts" / "python.exe"
-
-            # Patch activate.bat: virtualenv's chcp.com parsing fails on
-            # non-English Windows (e.g. French), producing a spurious
-            # "syntax error" message.  Adding 2^>nul suppresses it.
-            activate_bat = venv_path / "Scripts" / "activate.bat"
-            if activate_bat.exists():
-                try:
-                    text = activate_bat.read_text(encoding="utf-8")
-                    patched = text.replace(
-                        'chcp.com"',
-                        'chcp.com" 2^>nul',
-                    )
-                    if patched != text:
-                        activate_bat.write_text(patched, encoding="utf-8")
-                        log.sub("Patched activate.bat for non-English Windows.")
-                except Exception:
-                    pass  # Non-critical, skip silently
         else:
             python_exe = venv_path / "bin" / "python"
 
