@@ -39,11 +39,7 @@ if "%InstallType%"=="venv" (
     call conda activate "%InstallPath%\scripts\conda_env"
 )
 
-if %errorlevel% neq 0 (
-    echo [ERROR] Failed to activate environment.
-    pause
-    exit /b %errorlevel%
-)
+:: Activation errors will surface when python fails to launch below.
 
 :: --- Network Mode (saved after first choice) ---
 set "LISTEN_CFG=%InstallPath%\scripts\listen_address"
