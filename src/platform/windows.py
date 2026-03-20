@@ -10,7 +10,10 @@ from __future__ import annotations
 import os
 import shutil
 import subprocess
-import winreg
+try:
+    import winreg
+except ImportError:
+    winreg = None  # Only used on Windows, but caught for cross-platform CI tests
 from pathlib import Path
 
 from src.platform.base import Platform
