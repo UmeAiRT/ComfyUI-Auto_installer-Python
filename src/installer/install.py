@@ -175,7 +175,7 @@ def run_install(
     offer_model_downloads(install_path, log)
 
     # ── Done ──────────────────────────────────────────────────────
-    log.step("Installation Complete!")
+    log.success("Installation Complete!", level=0)
     log.success("ComfyUI and all components have been installed.", level=1)
     log.item("Double-click UmeAiRT-Start-ComfyUI to launch!")
 
