@@ -71,7 +71,7 @@ def setup_environment(
             if check_command_exists("uv"):
                 log.item("Creating venv with uv (Python >=3.11 auto-managed)...")
                 try:
-                    run_and_log("uv", ["venv", str(venv_path), "--python", ">=3.11,<3.14", "--seed"])
+                    run_and_log("uv", ["venv", str(venv_path), "--python", ">=3.11,<3.14", "--seed", "--link-mode", "copy"])
                     log.sub("Virtual environment created via uv.", style="success")
                 except CommandError:
                     log.warning("uv venv creation failed, falling back to system Python.", level=2)
@@ -83,7 +83,7 @@ def setup_environment(
                 if local_uv.exists():
                     log.item("Creating venv with local uv (Python >=3.11 auto-managed)...")
                     try:
-                        run_and_log(str(local_uv), ["venv", str(venv_path), "--python", ">=3.11,<3.14", "--seed"])
+                        run_and_log(str(local_uv), ["venv", str(venv_path), "--python", ">=3.11,<3.14", "--seed", "--link-mode", "copy"])
                         log.sub("Virtual environment created via uv.", style="success")
                     except CommandError:
                         log.warning("uv venv creation failed, falling back to system Python.", level=2)
