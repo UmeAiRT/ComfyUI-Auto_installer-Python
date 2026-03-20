@@ -4,7 +4,7 @@
 ![Python](https://img.shields.io/badge/Python-3.11%20|%203.12%20|%203.13-blue.svg)
 ![Platform](https://img.shields.io/badge/Platform-Windows%20%7C%20Linux%20%7C%20macOS-lightgrey.svg)
 ![License](https://img.shields.io/badge/License-MIT-green.svg)
-![Tests](https://img.shields.io/badge/Tests-103%20passed-brightgreen.svg)
+![Tests](https://img.shields.io/badge/Tests-203%20passed-brightgreen.svg)
 
 Cross-platform Python CLI to fully automate the installation, update, and configuration of ComfyUI. One-click setup with GPU optimizations, curated custom nodes, and VRAM-aware model downloads.
 
@@ -105,7 +105,7 @@ ComfyUI-Auto_installer/
 │   ├── platform/             # OS abstraction (Windows/Linux/macOS)
 │   └── utils/                # Logging, commands, packaging, GPU detection
 ├── scripts/                  # Config files (dependencies.json, custom_nodes.json)
-├── tests/                    # 103 tests (unit + integration)
+├── tests/                    # 203 tests (unit + integration)
 ├── Install.bat / Install.sh  # Bootstrap entry points
 └── pyproject.toml            # Project metadata (hatchling)
 ```

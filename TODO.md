@@ -210,6 +210,9 @@
 
 ## 9. Testing
 
+- [x] CI test matrix: Ubuntu + Windows, Python 3.11/3.12/3.13 (6 test jobs)
+- [x] CI coverage threshold (`--fail-under=45`) on Ubuntu + Windows
+- [x] Node.js 24 migration prep (`FORCE_JAVASCRIPT_ACTIONS_TO_NODE24`)
 - [ ] Establish Pester test suite for PowerShell scripts
 - [ ] Test matrix: Light mode, Full mode, existing Python, different drives, upgrade paths
 - [ ] Test UV migration from existing pip installs
@@ -232,6 +235,8 @@
   - Document container deployment alongside bare-metal.
 
 ### 10.2 CI/CD Pipeline
+- [x] CI matrix: Ubuntu + Windows × Python 3.11/3.12/3.13
+- [x] Coverage threshold enforcement
 - [ ] GitHub Actions for release signing
 - [ ] Automated checksum generation for release artifacts
 - [ ] Automated testing on fresh Windows VMs
