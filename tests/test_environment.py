@@ -21,9 +21,12 @@ class TestFindSourceScripts:
             assert (result / "dependencies.json").exists()
 
     def test_returns_path_object(self) -> None:
-        """Should return a Path or None."""
-        result = find_source_scripts()
-        assert result is None or isinstance(result, Path)
+        """Should return a Path (or raise FileNotFoundError)."""
+        try:
+            result = find_source_scripts()
+            assert isinstance(result, Path)
+        except OSError:
+            pass
 
 
 class TestCreateVenvWithUv:

@@ -63,8 +63,9 @@ def install_comfy_settings(
 
     from src.installer.environment import find_source_scripts
 
-    source_dir = find_source_scripts()
-    if source_dir is None:
+    try:
+        source_dir = find_source_scripts()
+    except FileNotFoundError:
         log.warning("Source scripts directory not found. Skipping settings.", level=2)
         return
 
@@ -174,10 +175,12 @@ def offer_model_downloads(
 
     # Also check source scripts directory (running from source checkout)
     from src.installer.environment import find_source_scripts
-    source_dir = find_source_scripts()
-    if source_dir:
+    try:
+        source_dir = find_source_scripts()
         search_paths.append(source_dir / "model_manifest.json")
         search_paths.append(source_dir.parent / "model_manifest.json")
+    except FileNotFoundError:
+        pass
 
     catalog_path = None
     for path in search_paths:

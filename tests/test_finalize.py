@@ -38,7 +38,7 @@ class TestInstallComfySettings:
 
         log = MagicMock()
 
-        with patch("src.installer.environment.find_source_scripts", return_value=None):
+        with patch("src.installer.environment.find_source_scripts", side_effect=FileNotFoundError):
             install_comfy_settings(tmp_path, log)
             log.warning.assert_called_once()
 
@@ -91,7 +91,7 @@ class TestOfferModelDownloads:
 
         log = MagicMock()
 
-        with patch("src.installer.environment.find_source_scripts", return_value=None):
+        with patch("src.installer.environment.find_source_scripts", side_effect=FileNotFoundError):
             offer_model_downloads(tmp_path, log)
 
         log.info.assert_called()
