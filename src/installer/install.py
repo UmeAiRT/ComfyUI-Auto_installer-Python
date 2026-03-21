@@ -237,7 +237,7 @@ def run_install(
                 log.sub(f"Using Windows AMD configuration: {cuda_tag}", style="cyan")
         else:
             log.warning("No NVIDIA or AMD GPU detected.", level=1)
-            if not confirm("Continue anyway? (PyTorch will install CPU-only without GPU support)", default=False):
+            if not confirm("Continue anyway? (PyTorch will install CPU-only without GPU support)", default=True):
                 raise InstallerFatalError("No physical GPU detected. Aborting.")
             # Default generic fallback even for CPU, index-url resolves CPU or defaults to cu130 package
             cuda_tag = "cu130"
