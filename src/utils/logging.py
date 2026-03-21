@@ -69,7 +69,9 @@ class InstallerLogger:
         self._file_logger.setLevel(logging.DEBUG)
 
         # Remove existing handlers to avoid duplicates on re-init
-        self._file_logger.handlers.clear()
+        for handler in list(self._file_logger.handlers):
+            handler.close()
+            self._file_logger.removeHandler(handler)
 
         handler = logging.FileHandler(log_file, encoding="utf-8")
         handler.setFormatter(logging.Formatter("%(asctime)s %(message)s", datefmt="%Y-%m-%d %H:%M:%S"))
