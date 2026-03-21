@@ -200,9 +200,6 @@ def setup_environment(
         raise InstallerFatalError(f"Unknown install type: {install_type}")
 
 
-
-
-
 def _find_conda(log: InstallerLogger) -> Path | None:
     """Find the conda executable in the PATH or standard locations."""
     if check_command_exists("conda"):

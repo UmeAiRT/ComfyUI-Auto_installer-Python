@@ -48,6 +48,10 @@
       "cpu": {
         "packages": "torch torchvision torchaudio",
         "index_url": "https://download.pytorch.org/whl/cpu"
+      },
+      "macos": {
+        "packages": "torch torchvision torchaudio",
+        "index_url": ""
       }
     },
     "comfyui_requirements": "requirements.txt",
@@ -91,19 +95,37 @@
     "git_repos": []
   },
   "optimizations": {
-    "triton": {
-      "windows_package": "triton-windows",
-      "linux_package": "triton",
-      "version_constraints": {
-        "2.10": ">=3.5,<4",
-        "2.9": ">=3.5,<4",
-        "2.8": ">=3.4,<3.5",
-        "2.7": ">=3.3,<3.4",
-        "2.6": ">=3.2,<3.3"
+    "packages": [
+      {
+        "name": "triton",
+        "pypi_package": { "windows": "triton-windows", "linux": "triton" },
+        "requires": ["nvidia"],
+        "torch_constraints": {
+          "2.10": ">=3.5,<4",
+          "2.9": ">=3.5,<4",
+          "2.8": ">=3.4,<3.5",
+          "2.7": ">=3.3,<3.4",
+          "2.6": ">=3.2,<3.3"
+        },
+        "install_options": {},
+        "retry_options": null
+      },
+      {
+        "name": "sageattention",
+        "pypi_package": "sageattention",
+        "requires": ["nvidia"],
+        "torch_constraints": {},
+        "install_options": { "no_build_isolation": true },
+        "retry_options": { "no_deps": true, "no_build_isolation": true }
+      },
+      {
+        "name": "flash-attn",
+        "pypi_package": "flash-attn",
+        "requires": ["nvidia", "linux"],
+        "torch_constraints": {},
+        "install_options": { "no_build_isolation": true },
+        "retry_options": null
       }
-    },
-    "sageattention": {
-      "pypi_package": "sageattention"
-    }
+    ]
   }
 }

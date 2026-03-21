@@ -5,6 +5,33 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [5.0.0-alpha.2] — Hardening & Optimization Engine
+
+### Added
+
+- **Config-driven optimizations** — `optimizations.packages[]` in `dependencies.json` replaces hardcoded Triton/SageAttention logic. Supports per-platform packages, GPU/OS filters (`requires`), torch version constraints, and retry options. Adding a new optimization = 1 JSON block, zero Python code.
+- **FlashAttention** — added as a Linux+NVIDIA-only package via the new optimization engine.
+- **`skip_step()` logger** — `InstallerLogger.skip_step()` decrements `total_steps` and logs a dimmed message when a step is conditionally skipped, keeping the progress counter accurate.
+- **80 new tests** — 6 new test files covering `commands`, `prompts`, `nodes`, `updater`, `gpu`, and `download` modules.
+
+### Changed
+
+- **Docker: CUDA 13.0 runtime** — base image changed from `python:3.12-slim` (CPU-only) to `nvidia/cuda:13.0.2-runtime-ubuntu22.04` for full RTX 50X0/40X0/30X0 GPU support.
+- **Docker: standalone uv** — replaced `pip install uv` with the standalone binary via `curl` (matches bootstrap approach).
+- **Docker: fast startup** — replaced `user: root` + `chown -R` at every boot with `user: "1000:1000"` (fixed UID created at build time).
+- **Error handling** — `SystemExit(1)` in updater replaced with `InstallerFatalError` for consistent error handling.
+- **Explicit `cuda_tag`** — removed hardcoded `"cu130"` defaults from `install_core_dependencies`, `install_python_packages`, `install_wheels` function signatures.
+- **macOS PyTorch** — improved package detection to derive names dynamically instead of relying on fragile string matching.
+- **Install.sh** — aligned with `Install.bat` by adding `--python-preference only-system` as first venv creation attempt.
+- **CI coverage threshold** — bumped from 55% to 70%.
+
+### Fixed
+
+- Updater step counter becoming inaccurate when `custom_nodes.json` is missing (now uses `skip_step()`).
+- Logger singleton state leaking between tests (added `autouse` reset fixture in `conftest.py`).
+- Redundant import of `CommandError` in `nodes.py`.
+- Extra blank lines between functions in `environment.py`.
+
 ## [5.0.0-alpha.1] — Python Rewrite
 
 ### Added
@@ -23,9 +50,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Bootstrap version detection** — `Install.bat`/`Install.sh` compare installed vs repo version and prompt before updating.
 - **GPU info command** — `umeairt-comfyui-installer info` displays GPU, VRAM, Python, and tool versions.
 - **Agentic documentation** — `AGENTS.md`, `.cursorrules`, `docs/codemaps/` with mermaid diagrams.
-- **203 automated tests** — unit and integration tests with pytest, 56% coverage.
+- **374 automated tests** — unit and integration tests with pytest, 70% coverage.
 - **CI/CD pipeline** — Fast PR linting/testing matrix (`ci.yml`), plus a rigorous E2E manual workflow (`integration.yml`) that spins up a Windows VM, does a full install, and stream-validates all PyTorch/tool SHA-256 hashes.
-- **Docker support** — `Dockerfile` + `docker-compose.yml` with `--skip-nodes` for lightweight images (~5 GB). Custom nodes installed at runtime via entrypoint into persistent volumes. Docker CI smoke test in GitHub Actions.
+- **Docker support** — `Dockerfile` + `docker-compose.yml` with CUDA 13.0 runtime and `--skip-nodes` for lightweight images. Custom nodes installed at runtime via entrypoint into persistent volumes. Docker CI smoke test in GitHub Actions.
 - **Model security scanner** — `scan-models` CLI command using `picklescan` to detect malicious pickle code in `.ckpt`/`.pt`/`.pth` model files. Non-blocking warning integrated into the update flow.
 
 ### Changed

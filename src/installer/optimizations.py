@@ -1,20 +1,23 @@
 """
 Performance optimizations — Step 10.
 
-Installs GPU acceleration libraries directly via uv:
+Installs GPU acceleration libraries from a config-driven package list.
 
-- **Triton**: ``triton-windows`` on Windows, ``triton`` on Linux.
-  Version is constrained to match the installed PyTorch build.
-- **SageAttention**: installed from PyPI with ``--no-build-isolation``;
-  retried without deps if the first attempt fails.
+Each package in ``dependencies.json`` → ``optimizations.packages[]`` declares:
+- **requires**: environment filters (e.g. ``["nvidia", "linux"]``)
+- **pypi_package**: pip name, optionally per-platform
+- **torch_constraints**: version-aware pip specifiers
+- **install_options / retry_options**: ``uv pip install`` flags
 
-Skipped entirely if no NVIDIA GPU is detected.
+Skipped entirely if no NVIDIA GPU is detected (all current packages
+require ``"nvidia"`` in their ``requires`` list).
 
-No external scripts are downloaded or executed (DazzleML eliminated).
+No external scripts are downloaded or executed.
 """
 
 from __future__ import annotations
 
+import contextlib
 import os
 import subprocess
 import sys
@@ -27,10 +30,13 @@ from src.utils.packaging import uv_install
 if TYPE_CHECKING:
     from pathlib import Path
 
-    from src.config import DependenciesConfig
+    from src.config import DependenciesConfig, OptimizationPackage
     from src.utils.logging import InstallerLogger
 
 
+# ---------------------------------------------------------------------------
+# Introspection helpers (unchanged)
+# ---------------------------------------------------------------------------
 def _check_package_installed(python_exe: Path, package: str) -> str | None:
     """Check whether a pip package is installed.
 
@@ -89,36 +95,70 @@ def _get_torch_version(python_exe: Path) -> str | None:
     return None
 
 
-def _get_triton_constraint(torch_ver: str, deps: DependenciesConfig) -> str:
-    """Map a PyTorch version to a compatible triton version range.
+# ---------------------------------------------------------------------------
+# Filter + constraint logic
+# ---------------------------------------------------------------------------
+_PLATFORM_MAP = {"win32": "windows", "linux": "linux", "darwin": "macos"}
 
-    Uses the ``optimizations.triton.version_constraints`` mapping from
-    ``dependencies.json``. Falls back to a hardcoded table if the
-    config has no constraints.
+
+def _get_current_platform() -> str:
+    """Map ``sys.platform`` to a short name used in config."""
+    return _PLATFORM_MAP.get(sys.platform, sys.platform)
+
+
+def _check_requirements(
+    requires: list[str],
+    *,
+    has_nvidia: bool,
+    has_amd: bool = False,
+    platform: str,
+) -> bool:
+    """Evaluate a package's ``requires`` filters against the environment.
+
+    Args:
+        requires: List of tags (e.g. ``["nvidia", "linux"]``).
+        has_nvidia: Whether an NVIDIA GPU was detected.
+        has_amd: Whether an AMD GPU was detected.
+        platform: Current platform (``"windows"``, ``"linux"``, ``"macos"``).
+
+    Returns:
+        ``True`` if **all** requirements are met.
+    """
+    env = {platform}
+    if has_nvidia:
+        env.add("nvidia")
+    if has_amd:
+        env.add("amd")
+    return all(r in env for r in requires)
+
+
+def _resolve_torch_constraint(
+    torch_ver: str,
+    constraints: dict[str, str],
+) -> str:
+    """Map a PyTorch version to a compatible pip specifier.
+
+    Tries ``"major.minor"`` key first, then falls back to the hardcoded
+    table (kept for safety when a user has no ``torch_constraints``).
 
     Args:
         torch_ver: PyTorch version string (e.g. ``"2.10.0+cu130"``).
-        deps: Parsed ``dependencies.json``.
+        constraints: Config-driven ``torch_constraints`` dict.
 
     Returns:
-        PEP 440 version specifier (e.g. ``">=3.5,<4"``), or an
-        empty string if the version cannot be parsed.
+        PEP 440 version specifier (e.g. ``">=3.5,<4"``), or ``""``.
     """
     try:
         parts = torch_ver.split(".")
         major = int(parts[0])
-        minor_str = parts[1].split("+")[0]  # Handle "+cu128" suffix
-        minor = int(minor_str)
+        minor = int(parts[1].split("+")[0])
+        key = f"{major}.{minor}"
 
-        # Try config-driven constraints first
-        if deps.optimizations and deps.optimizations.triton.version_constraints:
-            constraints = deps.optimizations.triton.version_constraints
-            # Try exact "major.minor", then just "minor"
-            key = f"{major}.{minor}"
-            if key in constraints:
-                return constraints[key]
+        # Config-driven first
+        if key in constraints:
+            return constraints[key]
 
-        # Hardcoded fallback table
+        # Hardcoded fallback (Triton compat table)
         if (major, minor) >= (2, 9):
             return ">=3.5,<4"
         elif (major, minor) >= (2, 8):
@@ -130,9 +170,95 @@ def _get_triton_constraint(torch_ver: str, deps: DependenciesConfig) -> str:
         else:
             return "<3.2"
     except (ValueError, IndexError):
-        return ""  # No constraint if can't parse
+        return ""
 
 
+# ---------------------------------------------------------------------------
+# Single-package installer
+# ---------------------------------------------------------------------------
+def _install_package(
+    pkg: OptimizationPackage,
+    python_exe: Path,
+    platform: str,
+    torch_ver: str | None,
+    log: InstallerLogger,
+) -> None:
+    """Install a single optimization package.
+
+    Handles: platform-specific name resolution, torch constraints,
+    install options, and retry logic.
+    """
+    pkg_name = pkg.get_package_name(platform)
+    if pkg_name is None:
+        log.info(f"{pkg.name}: not available on {platform}.")
+        return
+
+    # Check if already installed
+    installed_ver = _check_package_installed(python_exe, pkg_name)
+    # For triton-windows, also check under "triton"
+    if installed_ver is None and pkg_name.endswith("-windows"):
+        installed_ver = _check_package_installed(python_exe, pkg_name.removesuffix("-windows"))
+
+    if installed_ver:
+        log.sub(f"{pkg.name} already installed: v{installed_ver}", style="success")
+        return
+
+    # Build version constraint from torch if applicable
+    constraint = ""
+    if pkg.torch_constraints and torch_ver:
+        constraint = _resolve_torch_constraint(torch_ver, pkg.torch_constraints)
+        if constraint:
+            log.sub(f"PyTorch {torch_ver} → {pkg.name} constraint: {constraint}")
+
+    package_spec = f"{pkg_name}{constraint}" if constraint else pkg_name
+    log.sub(f"Installing {package_spec}...")
+
+    # First attempt
+    try:
+        uv_install(
+            python_exe,
+            [package_spec],
+            no_build_isolation=pkg.install_options.no_build_isolation,
+            no_deps=pkg.install_options.no_deps,
+            ignore_errors=True,
+            timeout=300,
+        )
+    except CommandError:
+        log.info(f"{pkg.name}: first attempt failed.")
+
+    # Verify after first attempt
+    installed_ver = _check_package_installed(python_exe, pkg_name)
+    if installed_ver is None and pkg_name.endswith("-windows"):
+        installed_ver = _check_package_installed(python_exe, pkg_name.removesuffix("-windows"))
+
+    if installed_ver:
+        log.sub(f"{pkg.name} installed: v{installed_ver}", style="success")
+        return
+
+    # Retry with retry_options if defined
+    if pkg.retry_options is not None:
+        log.sub(f"Retrying {pkg.name} with fallback options...", style="yellow")
+        with contextlib.suppress(CommandError):
+            uv_install(
+                python_exe,
+                [package_spec],
+                no_build_isolation=pkg.retry_options.no_build_isolation,
+                no_deps=pkg.retry_options.no_deps,
+                ignore_errors=True,
+                timeout=300,
+            )
+
+        installed_ver = _check_package_installed(python_exe, pkg_name)
+        if installed_ver:
+            log.sub(f"{pkg.name} installed (retry): v{installed_ver}", style="success")
+            return
+
+    log.warning(f"{pkg.name} could not be installed.", level=2)
+
+
+# ---------------------------------------------------------------------------
+# Public entry point
+# ---------------------------------------------------------------------------
 def install_optimizations(
     python_exe: Path,
     comfy_path: Path,
@@ -140,13 +266,13 @@ def install_optimizations(
     deps: DependenciesConfig,
     log: InstallerLogger,
 ) -> None:
-    """Install Triton and SageAttention for GPU inference acceleration.
+    """Install GPU optimization packages from the config-driven list.
 
-    Skipped if no NVIDIA GPU is detected. Triton version is
-    constrained to match the installed PyTorch build.
-    SageAttention is retried without deps on first failure.
+    Iterates over ``deps.optimizations.packages``, filters by platform
+    and GPU, and installs each compatible package via ``uv``.
 
-    All installs go through ``uv`` — no external scripts.
+    Skipped entirely if no NVIDIA GPU is detected (all current packages
+    require ``"nvidia"``).
 
     Args:
         python_exe: Path to the venv Python executable.
@@ -155,101 +281,47 @@ def install_optimizations(
         deps: Parsed ``dependencies.json``.
         log: Installer logger for user-facing messages.
     """
-    if not detect_nvidia_gpu():
-        log.info("No NVIDIA GPU — skipping Triton/SageAttention.")
+    has_nvidia = detect_nvidia_gpu()
+
+    if not has_nvidia:
+        log.info("No NVIDIA GPU — skipping GPU optimizations.")
         return
 
-    log.item("Installing Triton and SageAttention...")
+    platform = _get_current_platform()
+
+    # Gather the list of packages from config
+    packages: list[OptimizationPackage] = []
+    if deps.optimizations:
+        packages = deps.optimizations.packages
+
+    if not packages:
+        log.info("No optimization packages configured.")
+        return
+
+    log.item("Installing GPU optimization packages...")
 
     # Set CUDA_HOME if available
     cuda_path = os.environ.get("CUDA_PATH")
     if cuda_path:
         os.environ["CUDA_HOME"] = cuda_path
 
-    # Detect CUDA and torch version
+    # Detect torch version once for all packages
     cuda_ver = _get_cuda_version_from_torch(python_exe)
     if cuda_ver:
         log.sub(f"CUDA {cuda_ver} detected from torch.", style="success")
     else:
-        log.warning("Could not detect CUDA from torch. Triton may not work.", level=2)
+        log.warning("Could not detect CUDA from torch.", level=2)
 
-    # --- Triton ---
-    # Determine package name from config or platform default
-    if deps.optimizations:
-        triton_cfg = deps.optimizations.triton
-        base_package = triton_cfg.windows_package if sys.platform == "win32" else triton_cfg.linux_package
-    else:
-        base_package = "triton-windows" if sys.platform == "win32" else "triton"
+    torch_ver = _get_torch_version(python_exe)
 
-    triton_ver = _check_package_installed(python_exe, base_package)
-    if triton_ver is None and base_package == "triton-windows":
-        triton_ver = _check_package_installed(python_exe, "triton")
+    # Install each compatible package
+    for pkg in packages:
+        if not _check_requirements(
+            pkg.requires,
+            has_nvidia=has_nvidia,
+            platform=platform,
+        ):
+            log.info(f"{pkg.name}: skipped (requires {pkg.requires}, env={platform}).")
+            continue
 
-    if triton_ver:
-        log.sub(f"Triton already installed: v{triton_ver}", style="success")
-    else:
-        # Determine version constraint from PyTorch
-        torch_ver = _get_torch_version(python_exe)
-        constraint = _get_triton_constraint(torch_ver, deps) if torch_ver else ""
-        package_spec = f"{base_package}{constraint}" if constraint else base_package
-
-        if constraint:
-            log.sub(f"PyTorch {torch_ver} → Triton constraint: {constraint}")
-
-        log.sub(f"Installing {package_spec}...")
-        try:
-            uv_install(
-                python_exe,
-                [package_spec],
-                ignore_errors=True,
-                timeout=300,
-            )
-        except CommandError:
-            log.warning(f"{base_package} install failed.", level=2)
-
-        # Verify
-        triton_ver = _check_package_installed(python_exe, base_package)
-        if triton_ver is None and base_package == "triton-windows":
-            triton_ver = _check_package_installed(python_exe, "triton")
-
-        if triton_ver:
-            log.sub(f"Triton installed: v{triton_ver}", style="success")
-        else:
-            log.warning("Triton could not be installed. SageAttention may be limited.", level=2)
-
-    # --- SageAttention ---
-    # Determine package name from config or default
-    sage_package = "sageattention"
-    if deps.optimizations:
-        sage_package = deps.optimizations.sageattention.pypi_package
-
-    sage_ver = _check_package_installed(python_exe, "sageattention")
-
-    if sage_ver:
-        log.sub(f"SageAttention already installed: v{sage_ver}", style="success")
-    else:
-        log.sub("Installing SageAttention...")
-        try:
-            uv_install(
-                python_exe,
-                [sage_package],
-                no_build_isolation=True,
-                timeout=300,
-            )
-        except CommandError:
-            # Retry without deps (common workaround)
-            log.sub("Retrying SageAttention without deps...", style="yellow")
-            uv_install(
-                python_exe,
-                [sage_package],
-                no_deps=True,
-                no_build_isolation=True,
-                ignore_errors=True,
-                timeout=300,
-            )
-
-        sage_ver = _check_package_installed(python_exe, "sageattention")
-        if sage_ver:
-            log.sub(f"SageAttention installed: v{sage_ver}", style="success")
-        else:
-            log.warning("SageAttention could not be installed.", level=2)
+        _install_package(pkg, python_exe, platform, torch_ver, log)

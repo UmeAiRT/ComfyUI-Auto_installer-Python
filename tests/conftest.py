@@ -10,6 +10,20 @@ if TYPE_CHECKING:
     from pathlib import Path
 
 
+@pytest.fixture(autouse=True)
+def _reset_logger_singleton():
+    """Reset the module-level logger singleton between tests.
+
+    Prevents state leaking (step counter, verbose flag, file handler)
+    from one test to another.
+    """
+    from src.utils import logging as log_mod
+
+    log_mod._default_logger = None
+    yield
+    log_mod._default_logger = None
+
+
 @pytest.fixture
 def tmp_log_file(tmp_path: Path) -> Path:
     """Provide a temporary log file path."""

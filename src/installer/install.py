@@ -214,12 +214,12 @@ def run_install(
 
     # ── Step 7: Core Dependencies ─────────────────────────────────
     log.step("Core Dependencies")
-    install_core_dependencies(python_exe, comfy_path, deps, log, cuda_tag=cuda_tag)  # type: ignore
+    install_core_dependencies(python_exe, comfy_path, deps, log, cuda_tag=cuda_tag)
 
     # ── Step 8: Python Packages ───────────────────────────────────
     log.step("Installing Python Packages")
-    install_python_packages(python_exe, deps, log)
-    install_wheels(python_exe, install_path, deps, log, cuda_tag=cuda_tag)  # type: ignore
+    install_python_packages(python_exe, deps, log, cuda_tag=cuda_tag)
+    install_wheels(python_exe, install_path, deps, log, cuda_tag=cuda_tag)
 
     # ── Step 9: Custom Nodes ──────────────────────────────────────────
     if skip_nodes:

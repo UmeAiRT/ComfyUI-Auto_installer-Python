@@ -77,6 +77,20 @@ class TestInstallerLogger:
         assert "err" in content
         assert "debug" in content
 
+    def test_skip_step_adjusts_total(self, tmp_log_file: Path) -> None:
+        """skip_step() decrements total_steps without advancing current_step."""
+        logger = InstallerLogger(log_file=tmp_log_file, total_steps=5)
+
+        logger.step("First")       # current=1, total=5 → [Step 1/5]
+        logger.skip_step("Skipped") # current=1, total=4
+        logger.step("Third")       # current=2, total=4 → [Step 2/4]
+
+        assert logger.current_step == 2
+        assert logger.total_steps == 4
+
+        content = tmp_log_file.read_text(encoding="utf-8")
+        assert "skipped" in content.lower()
+
 
 class TestModuleLevelLogger:
     """Tests for the module-level singleton."""

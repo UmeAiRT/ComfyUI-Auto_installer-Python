@@ -156,6 +156,17 @@ class InstallerLogger:
         """Log an info/debug message (level 3)."""
         self.log(message, level=3)
 
+    def skip_step(self, message: str) -> None:
+        """Record a skipped step — adjusts total so the counter stays accurate.
+
+        Use this instead of silently returning when a step is conditionally
+        skipped.  The total is decremented so that subsequent ``step()``
+        calls still display ``[Step N/M]`` with a correct *M*.
+        """
+        if self.total_steps > 0:
+            self.total_steps -= 1
+        self.log(f"⏭  {message} (skipped)", level=1, style="info")
+
     def success(self, message: str, *, level: int = 1) -> None:
         """Log a success message."""
         self.log(message, level=level, style="success")

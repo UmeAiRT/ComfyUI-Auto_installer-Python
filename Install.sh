@@ -107,7 +107,10 @@ VENV_PY="$VENV_PATH/bin/python"
 
 if [ ! -f "$VENV_PY" ]; then
     echo "[INFO] Creating Python environment..."
-    uv venv "$VENV_PATH" --python ">=3.11,<3.14" --seed --link-mode copy
+    uv venv "$VENV_PATH" --python ">=3.11,<3.14" --python-preference only-system --seed --link-mode copy 2>/dev/null || {
+        echo "[INFO] No compatible system Python found, downloading..."
+        uv venv "$VENV_PATH" --python ">=3.11,<3.14" --seed --link-mode copy
+    }
     echo "[INFO] Python environment ready."
 else
     echo "[INFO] Python environment already exists."

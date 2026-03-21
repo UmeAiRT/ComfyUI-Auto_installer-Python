@@ -103,4 +103,4 @@ jobs:
       - name: Run tests with coverage
         run: |
           coverage run --source=src -m pytest tests/ -q -m "not integration"
-          coverage report -m --skip-covered --fail-under=55
+          coverage report -m --skip-covered --fail-under=70

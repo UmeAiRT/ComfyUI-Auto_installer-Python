@@ -8,6 +8,8 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
+from src.enums import InstallerFatalError
+
 if TYPE_CHECKING:
     from pathlib import Path
 
@@ -37,18 +39,18 @@ class TestDetectPython:
         assert result == venv_py
 
     def test_missing_install_type_raises(self, tmp_path: Path) -> None:
-        """Should raise SystemExit if install_type file is missing."""
+        """Should raise InstallerFatalError if install_type file is missing."""
         from src.installer.updater import _detect_python
 
         scripts_dir = tmp_path / "scripts"
         scripts_dir.mkdir()
 
         log = MagicMock()
-        with pytest.raises(SystemExit):
+        with pytest.raises(InstallerFatalError):
             _detect_python(scripts_dir, log)
 
     def test_venv_python_missing_raises(self, tmp_path: Path) -> None:
-        """Should raise SystemExit if install_type says venv but python is missing."""
+        """Should raise InstallerFatalError if install_type says venv but python is missing."""
         from src.installer.updater import _detect_python
 
         scripts_dir = tmp_path / "scripts"
@@ -57,7 +59,7 @@ class TestDetectPython:
         # Don't create the venv python
 
         log = MagicMock()
-        with pytest.raises(SystemExit):
+        with pytest.raises(InstallerFatalError):
             _detect_python(scripts_dir, log)
 
 

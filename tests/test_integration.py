@@ -71,9 +71,24 @@ def test_dependencies_parsing_optimizations():
 
     deps = load_dependencies(Path("scripts/dependencies.json"))
     assert deps.optimizations is not None
-    assert deps.optimizations.triton.windows_package == "triton-windows"
-    assert "2.10" in deps.optimizations.triton.version_constraints
-    assert deps.optimizations.sageattention.pypi_package == "sageattention"
+    assert len(deps.optimizations.packages) >= 3
+
+    # Find packages by name
+    pkg_names = {p.name for p in deps.optimizations.packages}
+    assert "triton" in pkg_names
+    assert "sageattention" in pkg_names
+    assert "flash-attn" in pkg_names
+
+    # Validate triton has platform-specific packages and torch constraints
+    triton = next(p for p in deps.optimizations.packages if p.name == "triton")
+    assert triton.get_package_name("windows") == "triton-windows"
+    assert triton.get_package_name("linux") == "triton"
+    assert "2.10" in triton.torch_constraints
+
+    # Validate flash-attn requires nvidia + linux
+    flash = next(p for p in deps.optimizations.packages if p.name == "flash-attn")
+    assert "nvidia" in flash.requires
+    assert "linux" in flash.requires
 
 
 def test_launcher_has_network_prompt(tmp_path):

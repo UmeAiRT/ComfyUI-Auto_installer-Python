@@ -33,7 +33,7 @@ def install_core_dependencies(
     deps: DependenciesConfig,
     log: InstallerLogger,
     *,
-    cuda_tag: str = "cu130",
+    cuda_tag: str | None,
 ) -> None:
     """Install PyTorch and ComfyUI requirements.
 
@@ -52,9 +52,16 @@ def install_core_dependencies(
 
     # For macOS (MPS/CPU), install standard torch from PyPI without index_url
     if cuda_tag is None:
-        torch_pkgs = deps.pip_packages.get_torch("cu130").packages.split()  # type: ignore
-        # Strip the +cuXXX suffix for macOS
-        torch_pkgs = [p.split("+")[0] for p in torch_pkgs]
+        # Derive package names from any available torch config, stripping +cuXXX suffixes
+        any_torch = next(
+            (deps.pip_packages.get_torch(t) for t in deps.pip_packages.supported_cuda_tags
+             if deps.pip_packages.get_torch(t) is not None),
+            None,
+        )
+        if any_torch is None:
+            log.warning("No PyTorch configuration found in dependencies.json.", level=1)
+            return
+        torch_pkgs = [p.split("+")[0].split("==")[0] for p in any_torch.packages.split()]
         log.item(f"Installing PyTorch ({', '.join(torch_pkgs)}) [macOS/CPU]...")
         uv_install(python_exe, torch_pkgs)
 
@@ -85,7 +92,7 @@ def install_python_packages(
     deps: DependenciesConfig,
     log: InstallerLogger,
     *,
-    cuda_tag: str | None = "cu130",
+    cuda_tag: str | None = None,
 ) -> None:
     """Install additional standard packages listed in *deps*.
 
@@ -119,7 +126,7 @@ def install_wheels(
     deps: DependenciesConfig,
     log: InstallerLogger,
     *,
-    cuda_tag: str | None = "cu130",
+    cuda_tag: str | None = None,
 ) -> None:
     """Download and install pre-built ``.whl`` packages.
 

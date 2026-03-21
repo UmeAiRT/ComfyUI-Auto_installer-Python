@@ -15,6 +15,7 @@ from typing import TYPE_CHECKING
 
 from src import __version__
 from src.config import load_dependencies
+from src.enums import InstallerFatalError
 from src.utils.commands import CommandError, run_and_log
 from src.utils.logging import InstallerLogger, setup_logger
 from src.utils.packaging import uv_install
@@ -73,7 +74,7 @@ def update_custom_nodes(
                 log.sub("custom_nodes.json is up to date.", style="success")
 
     if not manifest_path.exists():
-        log.warning("custom_nodes.json not found. Skipping node updates.", level=1)
+        log.skip_step("Custom Nodes — manifest not found")
         return
 
     custom_nodes_dir = comfy_path / "custom_nodes"
@@ -249,7 +250,7 @@ def _detect_python(scripts_dir: Path, log: InstallerLogger) -> Path:
 
     log.error("Could not determine venv Python. Is this a valid installation?")
     log.item("Expected 'install_type' file in scripts/ directory.")
-    raise SystemExit(1)
+    raise InstallerFatalError("Could not determine venv Python. Is this a valid installation?")
 
 
 def _scan_models_warning(install_path: Path, log: InstallerLogger) -> None:

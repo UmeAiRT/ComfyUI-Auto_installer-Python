@@ -4,14 +4,16 @@ services:
     image: umeairt/comfyui:latest
     container_name: umeairt-comfyui
     restart: unless-stopped
-    user: root
-    entrypoint: ["bash", "-c", "chown -R umeairt:umeairt /app/custom_nodes /app/models /app/output /app/input /app/user && su umeairt -c /app/entrypoint.sh"]
     ports:
       - "8188:8188"
+    # Run as the non-root user created in the Dockerfile (UID 1000).
+    # If your host volumes are owned by a different UID, set PUID/PGID
+    # in a .env file and rebuild with matching --build-arg values.
+    user: "1000:1000"
     volumes:
       # Map the auto-installer's external architecture directly to host directories.
       # This isolates your heavy downloads and generated images outside the container.
-      # Upon first boot, the entrypoint will automatically clone missing custom nodes
+      # Upon first boot, the entrypoint will automatically clone missing custom nodes.
       # Edit these paths to match your host machine, or use a .env file.
       - ./docker_data/models:/app/models
       - ./docker_data/custom_nodes:/app/custom_nodes
@@ -22,7 +24,7 @@ services:
       resources:
         reservations:
           devices:
-            # NVIDIA Container Toolkit passthrough (Requires Windows WSL2 / Linux host with drivers installed)
+            # NVIDIA Container Toolkit passthrough (Requires WSL2 / Linux host with drivers)
             # If you are using CPU-only or a non-NVIDIA GPU, comment out these 3 lines.
             - driver: nvidia
               count: all

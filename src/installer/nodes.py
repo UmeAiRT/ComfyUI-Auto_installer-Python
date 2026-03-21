@@ -130,7 +130,6 @@ def _pip_install_requirements(
         req_file: Path to requirements.txt file.
         log: Logger.
     """
-    from src.utils.commands import CommandError
 
     try:
         uv_install(

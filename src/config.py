@@ -177,25 +177,50 @@ class FilesConfig(BaseModel):
     comfy_settings: FileEntry | None = None
 
 
-class TritonConfig(BaseModel):
-    """Triton installation configuration."""
+class InstallOptions(BaseModel):
+    """Options for ``uv pip install``."""
 
-    windows_package: str = "triton-windows"
-    linux_package: str = "triton"
-    version_constraints: dict[str, str] = Field(default_factory=dict)
+    no_build_isolation: bool = False
+    no_deps: bool = False
 
 
-class SageAttentionConfig(BaseModel):
-    """SageAttention installation configuration."""
+class OptimizationPackage(BaseModel):
+    """A single GPU optimization package with platform/GPU filters.
 
-    pypi_package: str = "sageattention"
+    ``pypi_package`` can be a plain string (same on all platforms) or
+    a dict mapping platform names (``windows``, ``linux``, ``macos``)
+    to platform-specific package names.
+
+    ``requires`` is a list of tags the environment must satisfy for
+    this package to be installed.  Supported tags:
+    ``nvidia``, ``amd``, ``linux``, ``windows``, ``macos``.
+    """
+
+    name: str
+    pypi_package: str | dict[str, str]
+    requires: list[str] = Field(default_factory=list)
+    torch_constraints: dict[str, str] = Field(default_factory=dict)
+    install_options: InstallOptions = Field(default_factory=InstallOptions)
+    retry_options: InstallOptions | None = None
+
+    def get_package_name(self, platform: str) -> str | None:
+        """Resolve the pip package name for the given platform.
+
+        Args:
+            platform: ``"windows"``, ``"linux"``, or ``"macos"``.
+
+        Returns:
+            Package name string, or ``None`` if not available on this platform.
+        """
+        if isinstance(self.pypi_package, str):
+            return self.pypi_package
+        return self.pypi_package.get(platform)
 
 
 class OptimizationsConfig(BaseModel):
     """GPU optimization packages configuration."""
 
-    triton: TritonConfig = Field(default_factory=TritonConfig)
-    sageattention: SageAttentionConfig = Field(default_factory=SageAttentionConfig)
+    packages: list[OptimizationPackage] = Field(default_factory=list)
 
 
 class DependenciesConfig(BaseModel):

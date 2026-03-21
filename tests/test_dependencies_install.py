@@ -36,7 +36,7 @@ class TestInstallCoreDependencies:
         deps.pip_packages.comfyui_requirements = "requirements.txt"
 
         with patch("src.installer.dependencies.uv_install") as mock_uv:
-            install_core_dependencies(python_exe, comfy_path, deps, log)
+            install_core_dependencies(python_exe, comfy_path, deps, log, cuda_tag="cu130")
 
             assert mock_uv.call_count == 2
             # First call: torch
@@ -57,7 +57,7 @@ class TestInstallCoreDependencies:
         deps.pip_packages.comfyui_requirements = "requirements.txt"
 
         with patch("src.installer.dependencies.uv_install") as mock_uv:
-            install_core_dependencies(python_exe, comfy_path, deps, log)
+            install_core_dependencies(python_exe, comfy_path, deps, log, cuda_tag="cu130")
             assert mock_uv.call_count == 1
 
 

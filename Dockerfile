@@ -1,31 +1,41 @@
 # syntax=docker/dockerfile:1.4
-FROM python:3.12-slim
+# ── Base image: CUDA 13.0 runtime for RTX 50X0 / 40X0 / 30X0 support ──
+FROM nvidia/cuda:13.0.2-runtime-ubuntu22.04
 
-# Install system dependencies required for native compilation
+# Install system dependencies (Python 3.12, git, aria2, build tools)
 RUN apt-get update && apt-get install -y --no-install-recommends \
+    python3.12 \
+    python3.12-venv \
+    python3.12-dev \
+    python3-pip \
     git \
     build-essential \
     aria2 \
     curl \
+    && ln -sf /usr/bin/python3.12 /usr/bin/python3 \
+    && ln -sf /usr/bin/python3 /usr/bin/python \
     && rm -rf /var/lib/apt/lists/*
 
-# Install uv globally into the container
-RUN pip install --no-cache-dir uv
+# Install uv as a standalone binary (matches the bootstrap approach)
+RUN curl -LsSf https://astral.sh/uv/install.sh | sh \
+    && ln -sf /root/.local/bin/uv /usr/local/bin/uv
 
 # Configure workspace
 WORKDIR /app
 
 # Create a non-root standard user for security (UID 1000)
-RUN useradd -m -u 1000 umeairt && \
+# Use a fixed UID/GID so mounted volumes have predictable ownership
+RUN groupadd -g 1000 umeairt && \
+    useradd -m -u 1000 -g 1000 umeairt && \
     chown -R umeairt:umeairt /app
 
 # Copy the installer repository into the container
 COPY --chown=umeairt:umeairt . /app
 
-# Install the installer dependencies globally as root
+# Install the installer package system-wide
 RUN uv pip install --system -e .
 
-# Now switch to the non-root user
+# Switch to non-root user for the build phase
 USER umeairt
 
 # Pre-install ComfyUI core during the image build phase.
