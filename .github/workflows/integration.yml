@@ -1,6 +1,8 @@
 name: Integration Tests
 
 on:
+  push:
+    branches: [python-rewrite]
   workflow_dispatch:
   schedule:
     - cron: '0 0 * * 0' # Run weekly on Sunday
