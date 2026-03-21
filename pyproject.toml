@@ -62,6 +62,9 @@ ignore = ["B008"]  # typer requires function calls in argument defaults
 testpaths = ["tests"]
 pythonpath = ["."]
 asyncio_mode = "strict"
+markers = [
+    "integration: marks tests as heavy integration tests requiring internet and I/O (deselect with '-m \"not integration\"')"
+]
 
 [tool.bandit]
 exclude_dirs = ["tests"]

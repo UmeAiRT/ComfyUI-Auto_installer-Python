@@ -27,7 +27,8 @@ Cross-platform Python CLI to fully automate the installation, update, and config
 
 - **Git**
 - **GPU:** NVIDIA (CUDA 12.x+), AMD (Radeon RX 6000+), or Apple Silicon (M1+)
-- Internet connection
+- **Internet connection**
+- **[Optional] C++ Compiler:** Windows users might need [Visual Studio Build Tools](https://aka.ms/vs/17/release/vs_BuildTools.exe) (C++ workload) if installing custom nodes that require source compilation (e.g., `insightface`). Linux/macOS users usually have `gcc`/`clang` installed by default.
 
 > **Note:** Python 3.13 is auto-installed via `uv` if not present. No manual Python setup required.
 

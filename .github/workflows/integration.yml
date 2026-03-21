@@ -1,0 +1,53 @@
+name: Integration Tests
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 0 * * 0' # Run weekly on Sunday
+
+jobs:
+  full-install-windows:
+    name: Full E2E Install
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+
+      - name: Install dependencies
+        run: pip install -e .
+
+      - name: Run Install Phase
+        run: umeairt-comfyui-installer install --path C:\comfyui_test --type venv --yes --verbose
+
+      - name: Run Update Phase
+        run: umeairt-comfyui-installer update --path C:\comfyui_test --yes --verbose
+
+      - name: Verify Launchers exist
+        run: |
+          if (!(Test-Path -Path "C:\comfyui_test\UmeAiRT-Start-ComfyUI.bat")) {
+            Write-Error "Launcher was not generated."
+            exit 1
+          }
+
+  validate-checksums:
+    name: Validate Dependencies SHA-256
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+
+      - name: Install dependencies
+        run: |
+          pip install --upgrade pip
+          pip install -e ".[dev]" pytest-asyncio httpx
+
+      - name: Run Checksum Integrations
+        run: pytest tests/test_checksums_integration.py -v -m "integration"

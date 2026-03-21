@@ -78,7 +78,7 @@ jobs:
           pip install -e ".[dev]"
 
       - name: Run tests
-        run: pytest tests/ -v --tb=long
+        run: pytest tests/ -v --tb=long -m "not integration"
 
   # ── Coverage (single version, after tests) ─────────────────────
   coverage:
@@ -102,5 +102,5 @@ jobs:
 
       - name: Run tests with coverage
         run: |
-          coverage run --source=src -m pytest tests/ -q
+          coverage run --source=src -m pytest tests/ -q -m "not integration"
           coverage report -m --skip-covered --fail-under=50

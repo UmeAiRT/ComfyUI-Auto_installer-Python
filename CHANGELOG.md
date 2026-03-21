@@ -24,7 +24,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **GPU info command** — `umeairt-comfyui-installer info` displays GPU, VRAM, Python, and tool versions.
 - **Agentic documentation** — `AGENTS.md`, `.cursorrules`, `docs/codemaps/` with mermaid diagrams.
 - **203 automated tests** — unit and integration tests with pytest, 56% coverage.
-- **CI/CD pipeline** — GitHub Actions with Python 3.11-3.13 × Ubuntu/Windows matrix, Ruff linting, Bandit security audit, pip-audit CVE scan, and coverage threshold.
+- **CI/CD pipeline** — Fast PR linting/testing matrix (`ci.yml`), plus a rigorous E2E manual workflow (`integration.yml`) that spins up a Windows VM, does a full install, and stream-validates all PyTorch/tool SHA-256 hashes.
 
 ### Changed
 
