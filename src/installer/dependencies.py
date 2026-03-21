@@ -141,6 +141,7 @@ def install_custom_nodes(
     log: InstallerLogger,
     *,
     node_tier: str = "full",
+    source_dir: Path | None = None,
 ) -> None:
     """Install custom nodes from ``custom_nodes.json`` (additive-only).
 
@@ -158,21 +159,26 @@ def install_custom_nodes(
         log: Installer logger for user-facing messages.
         node_tier: Bundle tier — ``"minimal"``, ``"umeairt"``,
             or ``"full"`` (default).
+        source_dir: Pre-resolved source scripts directory. If ``None``,
+            falls back to calling :func:`find_source_scripts`.
     """
-    from src.installer.environment import find_source_scripts
     from src.installer.nodes import filter_by_tier, install_all_nodes, load_manifest
 
     scripts_dir = install_path / "scripts"
     custom_nodes_dir = comfy_path / "custom_nodes"
 
-    # Try to load manifest: install_path/scripts/ first, then source scripts
-    manifest_path = scripts_dir / "custom_nodes.json"
-    if not manifest_path.exists():
+    # Resolve source_dir lazily if not provided
+    if source_dir is None:
+        from src.installer.environment import find_source_scripts
         try:
             source_dir = find_source_scripts()
-            manifest_path = source_dir / "custom_nodes.json"
         except FileNotFoundError:
-            pass
+            source_dir = None
+
+    # Try to load manifest: install_path/scripts/ first, then source scripts
+    manifest_path = scripts_dir / "custom_nodes.json"
+    if not manifest_path.exists() and source_dir:
+        manifest_path = source_dir / "custom_nodes.json"
 
     if not manifest_path.exists():
         log.warning("custom_nodes.json not found. Skipping node installation.", level=1)
@@ -185,12 +191,8 @@ def install_custom_nodes(
     # Copy nunchaku_versions.json into the nunchaku node directory
     # (the node expects it in its own folder, not in scripts/)
     nunchaku_src = scripts_dir / "nunchaku_versions.json"
-    if not nunchaku_src.exists():
-        try:
-            source_dir = find_source_scripts()
-            nunchaku_src = source_dir / "nunchaku_versions.json"
-        except FileNotFoundError:
-            pass
+    if not nunchaku_src.exists() and source_dir:
+        nunchaku_src = source_dir / "nunchaku_versions.json"
 
     nunchaku_dst = custom_nodes_dir / "ComfyUI-nunchaku" / "nunchaku_versions.json"
     if nunchaku_src.exists() and nunchaku_dst.parent.exists():

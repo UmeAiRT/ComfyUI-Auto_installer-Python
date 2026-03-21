@@ -216,7 +216,7 @@ def run_install(
 
     # ── Step 9: Custom Nodes ──────────────────────────────────────────
     log.step(f"Custom Nodes ({node_tier})")
-    install_custom_nodes(python_exe, comfy_path, install_path, log, node_tier=node_tier)
+    install_custom_nodes(python_exe, comfy_path, install_path, log, node_tier=node_tier, source_dir=source_dir)
 
     # ── Step 10: Performance Optimizations ────────────────────────
     log.step("Performance Optimizations")
@@ -225,12 +225,12 @@ def run_install(
     # ── Step 11: Finalization ─────────────────────────────────────
     log.step("Finalization")
     install_cli_in_environment(python_exe, log)
-    install_comfy_settings(install_path, log)
+    install_comfy_settings(install_path, log, source_dir=source_dir)
     create_launchers(install_path, log)
 
     # ── Step 12: Model Downloads ──────────────────────────────────
     log.step("Model Downloads")
-    offer_model_downloads(install_path, log)
+    offer_model_downloads(install_path, log, source_dir=source_dir)
 
     # ── Done ──────────────────────────────────────────────────────
     marker.unlink(missing_ok=True)

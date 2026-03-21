@@ -107,3 +107,60 @@ class TestDependenciesValidation:
 
         config = load_dependencies(path)
         assert config.pip_packages.upgrade == ["pip"]
+
+
+class TestToolConfigSha256:
+    """Tests for ToolConfig SHA-256 fields."""
+
+    def test_sha256_default_empty(self) -> None:
+        """ToolConfig sha256 defaults to empty string."""
+        from src.config import ToolConfig
+        tool = ToolConfig(url="https://example.com/tool.exe")
+        assert tool.sha256 == ""
+
+    def test_sha256_set(self) -> None:
+        """ToolConfig stores SHA-256."""
+        from src.config import ToolConfig
+        tool = ToolConfig(url="https://example.com/tool.exe", sha256="abc123")
+        assert tool.sha256 == "abc123"
+
+
+class TestWheelConfigChecksums:
+    """Tests for WheelConfig SHA-256 checksums."""
+
+    def test_checksums_default_empty(self) -> None:
+        """WheelConfig checksums dict defaults to empty."""
+        from src.config import WheelConfig
+        whl = WheelConfig(name="pkg", versions={"cp313": "https://example.com/pkg.whl"})
+        assert whl.checksums == {}
+
+    def test_resolve_returns_3_tuple_with_checksum(self) -> None:
+        """resolve() returns (name, url, sha256) when checksum exists."""
+        from src.config import WheelConfig
+        whl = WheelConfig(
+            name="pkg",
+            versions={"cp313": "https://example.com/pkg.whl"},
+            checksums={"cp313": "deadbeef"},
+        )
+        result = whl.resolve((3, 13))
+        assert result == ("pkg", "https://example.com/pkg.whl", "deadbeef")
+
+    def test_resolve_returns_none_checksum_when_missing(self) -> None:
+        """resolve() returns None for sha256 when no checksum entry."""
+        from src.config import WheelConfig
+        whl = WheelConfig(
+            name="pkg",
+            versions={"cp313": "https://example.com/pkg.whl"},
+        )
+        result = whl.resolve((3, 13))
+        assert result == ("pkg", "https://example.com/pkg.whl", None)
+
+    def test_resolve_returns_none_for_missing_version(self) -> None:
+        """resolve() returns None if version not in versions."""
+        from src.config import WheelConfig
+        whl = WheelConfig(
+            name="pkg",
+            versions={"cp313": "https://example.com/pkg.whl"},
+        )
+        assert whl.resolve((3, 11)) is None
+

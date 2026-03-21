@@ -49,6 +49,8 @@ def install_cli_in_environment(
 def install_comfy_settings(
     install_path: Path,
     log: InstallerLogger,
+    *,
+    source_dir: Path | None = None,
 ) -> None:
     """Copy custom ComfyUI UI settings from the local source.
 
@@ -58,16 +60,17 @@ def install_comfy_settings(
     Args:
         install_path: Root installation directory.
         log: Installer logger for user-facing messages.
+        source_dir: Pre-resolved source scripts directory.
     """
     import shutil
 
-    from src.installer.environment import find_source_scripts
-
-    try:
-        source_dir = find_source_scripts()
-    except FileNotFoundError:
-        log.warning("Source scripts directory not found. Skipping settings.", level=2)
-        return
+    if source_dir is None:
+        from src.installer.environment import find_source_scripts
+        try:
+            source_dir = find_source_scripts()
+        except FileNotFoundError:
+            log.warning("Source scripts directory not found. Skipping settings.", level=2)
+            return
 
     settings_src = source_dir / "comfy.settings.json"
     if not settings_src.exists():
@@ -151,6 +154,8 @@ def create_launchers(
 def offer_model_downloads(
     install_path: Path,
     log: InstallerLogger,
+    *,
+    source_dir: Path | None = None,
 ) -> None:
     """Offer interactive model pack downloads via the unified catalog.
 
@@ -166,6 +171,7 @@ def offer_model_downloads(
     Args:
         install_path: Root installation directory.
         log: Installer logger for user-facing messages.
+        source_dir: Pre-resolved source scripts directory.
     """
 
     # Search for catalog in multiple locations
@@ -174,13 +180,16 @@ def offer_model_downloads(
     ]
 
     # Also check source scripts directory (running from source checkout)
-    from src.installer.environment import find_source_scripts
-    try:
-        source_dir = find_source_scripts()
+    if source_dir is None:
+        from src.installer.environment import find_source_scripts
+        try:
+            source_dir = find_source_scripts()
+        except FileNotFoundError:
+            source_dir = None
+
+    if source_dir:
         search_paths.append(source_dir / "model_manifest.json")
         search_paths.append(source_dir.parent / "model_manifest.json")
-    except FileNotFoundError:
-        pass
 
     catalog_path = None
     for path in search_paths:
