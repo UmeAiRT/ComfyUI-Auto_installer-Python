@@ -14,7 +14,9 @@ import typer
 from rich.table import Table
 
 from src import __version__
+from src.enums import InstallType, NodeTier
 from src.utils.logging import console, setup_logger
+from src.utils.prompts import set_non_interactive
 
 app = typer.Typer(
     name="comfyui-installer",
@@ -51,12 +53,34 @@ def install(
         "--nodes", "-n",
         help="Custom nodes bundle: 'minimal', 'umeairt', or 'full'.",
     ),
+    yes: bool = typer.Option(
+        False,
+        "--yes", "-y",
+        help="Non-interactive mode: accept all defaults without prompting.",
+    ),
 ) -> None:
     """Install ComfyUI with all dependencies and custom nodes."""
     from src.installer.install import run_install
 
+    if yes:
+        set_non_interactive()
+
+    # Validate enum values early
+    try:
+        install_type_enum = InstallType(install_type)
+    except ValueError:
+        raise typer.BadParameter(
+            f"Invalid install type '{install_type}'. Must be one of: {', '.join(t.value for t in InstallType)}"
+        )
+    try:
+        node_tier_enum = NodeTier(nodes)
+    except ValueError:
+        raise typer.BadParameter(
+            f"Invalid node tier '{nodes}'. Must be one of: {', '.join(t.value for t in NodeTier)}"
+        )
+
     path = _clean_path(path)
-    run_install(path, install_type, verbose=verbose, node_tier=nodes)
+    run_install(path, install_type_enum, verbose=verbose, node_tier=node_tier_enum)
 
 
 @app.command()
@@ -71,9 +95,17 @@ def update(
         "--verbose", "-v",
         help="Show detailed output (pip, git, etc.).",
     ),
+    yes: bool = typer.Option(
+        False,
+        "--yes", "-y",
+        help="Non-interactive mode: accept all defaults without prompting.",
+    ),
 ) -> None:
     """Update ComfyUI, custom nodes, and dependencies."""
     from src.installer.updater import run_update
+
+    if yes:
+        set_non_interactive()
 
     path = _clean_path(path)
     run_update(path, verbose=verbose)

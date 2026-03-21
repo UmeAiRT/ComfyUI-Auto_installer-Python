@@ -14,10 +14,12 @@
       "arguments": "--wait --quiet --norestart --add Microsoft.VisualStudio.Workload.VCTools --includeRecommended"
     },
     "git_windows": {
-      "url": "https://github.com/git-for-windows/git/releases/download/v2.47.1.windows.1/Git-2.47.1-64-bit.exe"
+      "url": "https://huggingface.co/UmeAiRT/ComfyUI-Auto_installer/resolve/main/bin/Git-2.53.0.2-64-bit.exe",
+      "sha256": "194362cf24cd0db4b573096108460a34c7f80a20c5f2aa60d06ef817be9f73a1"
     },
     "aria2_windows": {
-      "url": "https://github.com/aria2/aria2/releases/download/release-1.37.0/aria2-1.37.0-win-64bit-build1.zip"
+      "url": "https://huggingface.co/UmeAiRT/ComfyUI-Auto_installer/resolve/main/bin/aria2-1.37.0-win-64bit-build1.zip",
+      "sha256": "67d015301eef0b612191212d564c5bb0a14b5b9c4796b76454276a4d28d9b288"
     }
   },
   "pip_packages": {
@@ -31,9 +33,14 @@
       {
         "name": "nunchaku",
         "versions": {
-          "cp311": "https://github.com/nunchaku-ai/nunchaku/releases/download/v1.2.1/nunchaku-1.2.1+cu13.0torch2.10-cp311-cp311-win_amd64.whl",
-          "cp312": "https://github.com/nunchaku-ai/nunchaku/releases/download/v1.2.1/nunchaku-1.2.1+cu13.0torch2.10-cp312-cp312-win_amd64.whl",
-          "cp313": "https://github.com/nunchaku-ai/nunchaku/releases/download/v1.2.1/nunchaku-1.2.1+cu13.0torch2.10-cp313-cp313-win_amd64.whl"
+          "cp311": "https://huggingface.co/UmeAiRT/ComfyUI-Auto_installer/resolve/main/whl/nunchaku-1.2.1+cu13.0torch2.10-cp311-cp311-win_amd64.whl",
+          "cp312": "https://huggingface.co/UmeAiRT/ComfyUI-Auto_installer/resolve/main/whl/nunchaku-1.2.1+cu13.0torch2.10-cp312-cp312-win_amd64.whl",
+          "cp313": "https://huggingface.co/UmeAiRT/ComfyUI-Auto_installer/resolve/main/whl/nunchaku-1.2.1+cu13.0torch2.10-cp313-cp313-win_amd64.whl"
+        },
+        "checksums": {
+          "cp311": "a31fbb48650f9a5c0ed48e447f34e64e471318ff3466f73c9167a09bede28771",
+          "cp312": "20d8c4cef6664c2dd6f2d44155e6dd2d4d36163439f70da31ef945af3c8c6149",
+          "cp313": "d3a922fa918fb2c3c815bf4fc5645ce663ec5354e7c026b384269813785b913d"
         }
       },
       {
@@ -42,6 +49,11 @@
           "cp311": "https://huggingface.co/UmeAiRT/ComfyUI-Auto_installer/resolve/main/whl/insightface-0.7.3-cp311-cp311-win_amd64.whl",
           "cp312": "https://huggingface.co/UmeAiRT/ComfyUI-Auto_installer/resolve/main/whl/insightface-0.7.3-cp312-cp312-win_amd64.whl",
           "cp313": "https://huggingface.co/UmeAiRT/ComfyUI-Auto_installer/resolve/main/whl/insightface-0.7.3-cp313-cp313-win_amd64.whl"
+        },
+        "checksums": {
+          "cp311": "ea9b96de0f3cada1c031e3c566d2dfcb2ff45b0b7cca88e27f583ed9ef386561",
+          "cp312": "4e58a504433ba5a500d48328689e7d6c69873165653ded7553ce804beb8723db",
+          "cp313": "ebe005bfc7ab874f9ec83f31cae03eea3a084d95cf9549dcdbac3f23222346d1"
         }
       }
     ],
@@ -59,7 +71,6 @@
       "segment_anything",
       "gguf",
       "deepdiff",
-      "pynvml",
       "py-cpuinfo"
     ],
     "git_repos": []

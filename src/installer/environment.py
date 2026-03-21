@@ -19,6 +19,7 @@ import sys
 from pathlib import Path
 from typing import TYPE_CHECKING
 
+from src.enums import InstallerFatalError, InstallType
 from src.platform.base import get_platform
 from src.utils.commands import CommandError, check_command_exists, run_and_log
 from src.utils.download import download_file
@@ -59,7 +60,7 @@ def _create_venv_with_uv(
 
 def setup_environment(
     install_path: Path,
-    install_type: str,
+    install_type: InstallType,
     log: InstallerLogger,
 ) -> Path:
     """Create the Python virtual environment.
@@ -76,21 +77,22 @@ def setup_environment(
 
     Args:
         install_path: Root installation directory.
-        install_type: ``"venv"`` or ``"conda"`` (conda not yet implemented).
+        install_type: :attr:`InstallType.VENV` or
+            :attr:`InstallType.CONDA`.
         log: Installer logger for user-facing messages.
 
     Returns:
         Absolute path to the Python executable inside the environment.
 
     Raises:
-        SystemExit: If no usable Python 3.11+ can be found or created.
+        InstallerFatalError: If no usable Python 3.11+ can be found or created.
     """
     scripts_dir = install_path / "scripts"
     scripts_dir.mkdir(parents=True, exist_ok=True)
 
     log.item(f"Install path: {install_path}")
 
-    if install_type == "venv":
+    if install_type is InstallType.VENV:
         venv_path = scripts_dir / "venv"
 
         if venv_path.exists():
@@ -122,7 +124,7 @@ def setup_environment(
                     log.error("Python 3.11+ is required but could not be acquired.")
                     log.item("If 'uv' failed, this may be due to network or Antivirus restrictions.")
                     log.item("Please install Python 3.11-3.13 from https://www.python.org/downloads/")
-                    raise SystemExit(1)
+                    raise InstallerFatalError("Python 3.11+ is required but could not be acquired.")
 
                 log.item(f"Creating venv with {python_path}...")
                 run_and_log(str(python_path), ["-m", "venv", str(venv_path)])
@@ -137,12 +139,12 @@ def setup_environment(
         if not python_exe.exists():
             log.error(f"Venv python not found at expected path: {python_exe}")
             log.item(f"Venv directory: {venv_path}")
-            raise SystemExit(1)
+            raise InstallerFatalError(f"Venv python not found at expected path: {python_exe}")
 
         log.sub(f"Venv python: {python_exe}", style="success")
         return python_exe
 
-    elif install_type == "conda":
+    elif install_type is InstallType.CONDA:
         conda_env_path = scripts_dir / "conda_env"
 
         # Determine Python executable path based on OS
@@ -165,7 +167,7 @@ def setup_environment(
             if not conda_exe:
                 log.error("Conda is required for this installation type.")
                 log.item("Please install Miniconda from https://docs.anaconda.com/free/miniconda/")
-                raise SystemExit(1)
+                raise InstallerFatalError("Conda is required for this installation type.")
 
         # Provision the environment.yml first so conda can use it
         provision_scripts(install_path, log)
@@ -173,7 +175,7 @@ def setup_environment(
 
         if not env_yml.exists():
             log.error(f"environment.yml not found at {env_yml}")
-            raise SystemExit(1)
+            raise InstallerFatalError(f"environment.yml not found at {env_yml}")
 
         log.item(f"Creating local Conda environment at {conda_env_path}...")
         try:
@@ -184,18 +186,17 @@ def setup_environment(
             log.sub("Conda environment created.", style="success")
         except CommandError:
             log.error("Failed to create Conda environment.")
-            raise SystemExit(1) from None
+            raise InstallerFatalError("Failed to create Conda environment.") from None
 
         if not python_exe.exists():
             log.error(f"Conda python not found at expected path: {python_exe}")
-            raise SystemExit(1)
+            raise InstallerFatalError(f"Conda python not found at expected path: {python_exe}")
 
         log.sub(f"Conda python: {python_exe}", style="success")
         return python_exe
 
     else:
-        log.error(f"Unknown install type: {install_type}")
-        raise SystemExit(1)
+        raise InstallerFatalError(f"Unknown install type: {install_type}")
 
 
 

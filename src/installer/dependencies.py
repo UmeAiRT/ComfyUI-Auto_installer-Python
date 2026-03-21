@@ -103,13 +103,8 @@ def install_wheels(
         return
 
     # Detect Python version from the venv
-    import subprocess
-    result = subprocess.run(  # returncode not checked — fallback to default
-        [str(python_exe), "-c", "import sys; print(sys.version_info.major, sys.version_info.minor)"],
-        capture_output=True, text=True, timeout=10,
-    )
-    parts = result.stdout.strip().split()
-    py_version = (int(parts[0]), int(parts[1])) if len(parts) == 2 else (3, 13)
+    from src.utils.python_info import detect_venv_python_version
+    py_version = detect_venv_python_version(python_exe)
     log.info(f"Python version detected: {py_version[0]}.{py_version[1]}")
 
     log.item(f"Installing {len(deps.pip_packages.wheels)} wheel packages...")
@@ -124,12 +119,12 @@ def install_wheels(
             )
             continue
 
-        whl_name, whl_url = resolved
+        whl_name, whl_url, whl_checksum = resolved
         wheel_path = scripts_dir / f"{whl_name}.whl"
         log.sub(f"Installing {whl_name}...")
 
         try:
-            download_file(whl_url, wheel_path)
+            download_file(whl_url, wheel_path, checksum=whl_checksum)
             uv_install(python_exe, [str(wheel_path)], ignore_errors=True)
         except Exception as e:
             log.warning(f"Failed to install {whl_name}: {e}", level=3)

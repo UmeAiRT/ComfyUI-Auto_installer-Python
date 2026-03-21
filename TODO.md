@@ -177,6 +177,15 @@
 - **Issue:** If a file already exists at the target path, it is assumed valid/complete.
 - **Fix:** Verify file integrity (size, checksum) before skipping download.
 
+### 6.5 CUDA Version Verification
+- **Files:** `src/installer/dependencies.py`, `src/utils/gpu.py`
+- **Issue:** The installer assumes a compatible CUDA version is present but never verifies it. If the user's CUDA driver is too old (e.g. CUDA 11.x) for the PyTorch build (cu130), the installation will succeed but ComfyUI will fail at runtime with obscure errors.
+- **Fix:**
+  - Query CUDA version via `nvidia-smi` (`--query-gpu=driver_version`) or `nvcc --version`.
+  - Compare against the minimum required CUDA version derived from the PyTorch index URL (e.g. `cu130` → CUDA 13.0+).
+  - Warn or abort early if the detected CUDA version is incompatible.
+  - Display the detected CUDA version in `comfyui-installer info`.
+
 ---
 
 ## 7. Code Quality
@@ -245,6 +254,18 @@
 - [ ] GPG-sign releases
 - [ ] Commit signing for contributors
 - [ ] Publish public keys in repo
+
+### 10.4 macOS Support
+- **Context:** The `Platform` ABC (`src/platform/base.py`) already defines the interface, and `get_platform()` has a stub for `darwin`. A `MacOSPlatform` implementation is needed.
+- **Tasks:**
+  - [ ] Implement `MacOSPlatform` in `src/platform/macos.py` (symlinks, Python detection via Homebrew/pyenv, `~/Library/Application Support` for app data)
+  - [ ] Handle Apple Silicon (MPS) vs Intel in GPU detection
+  - [ ] Test on macOS (CI: `macos-latest` runner)
+  - [ ] Re-add macOS badge to README once verified
+
+### 10.5 `--dry-run` Mode
+- **Issue:** Users cannot preview what the installer will do before committing. Useful for verifying disk space, configuration, and debugging.
+- **Fix:** Add a `--dry-run` flag that simulates the 12-step installation without modifying the system, displaying all planned actions (paths, packages, models, estimated disk usage).
 
 ---
 

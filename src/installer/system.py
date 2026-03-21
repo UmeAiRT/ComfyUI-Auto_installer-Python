@@ -109,7 +109,8 @@ def check_prerequisites(log: InstallerLogger) -> bool:
 def install_git(
     log: InstallerLogger,
     *,
-    git_url: str = "https://github.com/git-for-windows/git/releases/download/v2.47.1.windows.1/Git-2.47.1-64-bit.exe",
+    git_url: str = "https://huggingface.co/UmeAiRT/ComfyUI-Auto_installer/resolve/main/bin/Git-2.53.0.2-64-bit.exe",
+    git_sha256: str = "",
 ) -> bool:
     """Download and silently install Git for Windows.
 
@@ -120,6 +121,7 @@ def install_git(
         log: Installer logger for user-facing messages.
         git_url: Download URL for the Git installer. Defaults to
             the version in ``dependencies.json``.
+        git_sha256: Expected SHA-256 hex digest for verification.
 
     Returns:
         ``True`` if Git was installed successfully, ``False`` otherwise.
@@ -137,7 +139,7 @@ def install_git(
     git_installer = Path(tempfile.gettempdir()) / "git-installer.exe"
 
     try:
-        download_file(git_url, git_installer)
+        download_file(git_url, git_installer, checksum=git_sha256 or None)
         log.sub("Installing Git (accept UAC if prompted)...")
 
         result = subprocess.run(  # returncode checked below
@@ -166,7 +168,7 @@ def install_git(
         git_installer.unlink(missing_ok=True)
 
 
-def ensure_aria2(install_path: Path, log: InstallerLogger, *, aria2_url: str = "") -> bool:
+def ensure_aria2(install_path: Path, log: InstallerLogger, *, aria2_url: str = "", aria2_sha256: str = "") -> bool:
     """Ensure the aria2 download accelerator is available.
 
     Uses a 3-tier search strategy:
@@ -202,7 +204,11 @@ def ensure_aria2(install_path: Path, log: InstallerLogger, *, aria2_url: str = "
 
     # 3. Platform-specific: download or suggest
     if sys.platform == "win32":
-        kwargs = {"aria2_url": aria2_url} if aria2_url else {}
+        kwargs: dict[str, str] = {}
+        if aria2_url:
+            kwargs["aria2_url"] = aria2_url
+        if aria2_sha256:
+            kwargs["aria2_sha256"] = aria2_sha256
         return _download_aria2_windows(install_path, log, **kwargs)
     else:
         log.info("aria2 is not installed. Downloads will use standard speed.")
@@ -217,7 +223,8 @@ def _download_aria2_windows(
     install_path: Path,
     log: InstallerLogger,
     *,
-    aria2_url: str = "https://github.com/aria2/aria2/releases/download/release-1.37.0/aria2-1.37.0-win-64bit-build1.zip",
+    aria2_url: str = "https://huggingface.co/UmeAiRT/ComfyUI-Auto_installer/resolve/main/bin/aria2-1.37.0-win-64bit-build1.zip",
+    aria2_sha256: str = "",
 ) -> bool:
     """Download and extract aria2 for Windows.
 
@@ -230,6 +237,7 @@ def _download_aria2_windows(
         log: Installer logger for user-facing messages.
         aria2_url: Download URL for the aria2 zip. Defaults to
             the version in ``dependencies.json``.
+        aria2_sha256: Expected SHA-256 hex digest for verification.
 
     Returns:
         ``True`` if ``aria2c.exe`` is available after extraction.
@@ -240,7 +248,7 @@ def _download_aria2_windows(
 
     zip_path = Path(tempfile.gettempdir()) / "aria2.zip"
     try:
-        download_file(aria2_url, zip_path)
+        download_file(aria2_url, zip_path, checksum=aria2_sha256 or None)
         log.sub("Extracting aria2...")
         aria2_dir.mkdir(parents=True, exist_ok=True)
 

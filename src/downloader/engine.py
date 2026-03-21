@@ -27,6 +27,7 @@ import os
 from typing import TYPE_CHECKING
 
 from pydantic import BaseModel, Field
+from rich.prompt import Prompt
 from rich.table import Table
 
 from src.utils.download import download_file
@@ -407,7 +408,7 @@ def interactive_download(catalog: ModelCatalog, models_dir: Path) -> None:
         "(comma-separated, e.g. [cyan]1,3,5[/cyan]) "
         "or [cyan]all[/cyan], or [dim]skip[/dim]:[/bold]"
     )
-    raw = input("> ").strip().lower()
+    raw = Prompt.ask(">").strip().lower()
 
     if not raw or raw in ("skip", "s", "n", "no"):
         log.item("No models selected.", style="info")

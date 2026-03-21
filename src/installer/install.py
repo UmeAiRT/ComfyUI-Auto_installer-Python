@@ -60,6 +60,7 @@ from typing import TYPE_CHECKING
 
 from src import __version__
 from src.config import load_dependencies, load_settings
+from src.enums import InstallerFatalError, InstallType, NodeTier
 from src.installer.dependencies import (
     install_core_dependencies,
     install_custom_nodes,
@@ -88,29 +89,30 @@ TOTAL_STEPS = 12
 
 def run_install(
     install_path: Path,
-    install_type: str = "venv",
+    install_type: InstallType = InstallType.VENV,
     *,
     verbose: bool = False,
-    node_tier: str = "full",
+    node_tier: NodeTier = NodeTier.FULL,
 ) -> None:
     """Run the complete ComfyUI installation in 12 unified steps.
 
     Resolves *install_path* to an absolute path, initialises the
     logger, then executes each step sequentially.  Any fatal
-    failure raises ``SystemExit(1)``.
+    failure raises :class:`~src.enums.InstallerFatalError`.
 
     Args:
         install_path: Root installation directory. Will be
             resolved to an absolute path.
-        install_type: Environment type — ``"venv"`` (default) or
-            ``"conda"`` (not yet implemented).
+        install_type: Environment type — :attr:`InstallType.VENV`
+            (default) or :attr:`InstallType.CONDA`.
         verbose: If ``True``, show full subprocess output during
             installs and git clones.
-        node_tier: Custom nodes bundle tier — ``"minimal"``,
-            ``"umeairt"``, or ``"full"`` (default).
+        node_tier: Custom nodes bundle tier —
+            :attr:`NodeTier.MINIMAL`, :attr:`NodeTier.UMEAIRT`,
+            or :attr:`NodeTier.FULL` (default).
 
     Raises:
-        SystemExit: On missing prerequisites or fatal errors.
+        InstallerFatalError: On missing prerequisites or fatal errors.
     """
     # Resolve to absolute path
     install_path = install_path.resolve()
@@ -148,17 +150,25 @@ def run_install(
     if source_deps_file and source_deps_file.exists():
         source_deps = load_dependencies(source_deps_file)
         git_url = source_deps.tools.git_windows.url
+        git_sha256 = source_deps.tools.git_windows.sha256
         aria2_url = source_deps.tools.aria2_windows.url
+        aria2_sha256 = source_deps.tools.aria2_windows.sha256
     else:
         git_url = ""
+        git_sha256 = ""
         aria2_url = ""
+        aria2_sha256 = ""
 
     if not check_prerequisites(log):
-        kwargs = {"git_url": git_url} if git_url else {}
+        kwargs: dict[str, str] = {}
+        if git_url:
+            kwargs["git_url"] = git_url
+        if git_sha256:
+            kwargs["git_sha256"] = git_sha256
         if not install_git(log, **kwargs):
-            raise SystemExit(1)
+            raise InstallerFatalError("Git is required but could not be installed.")
 
-    ensure_aria2(install_path, log, aria2_url=aria2_url)
+    ensure_aria2(install_path, log, aria2_url=aria2_url, aria2_sha256=aria2_sha256)
 
     # ── Step 3: Creating Python Environment ───────────────────────
     log.step("Creating Python Environment")
@@ -170,7 +180,7 @@ def run_install(
 
     # Save the installation type for launchers and tools
     scripts_dir = install_path / "scripts"
-    (scripts_dir / "install_type").write_text(install_type, encoding="utf-8")
+    (scripts_dir / "install_type").write_text(install_type.value, encoding="utf-8")
 
     # ── Load dependencies for remaining steps ─────────────────────
     comfy_path = install_path / "ComfyUI"
@@ -178,7 +188,7 @@ def run_install(
 
     if not deps_file.exists():
         log.error(f"dependencies.json not found at {deps_file}")
-        raise SystemExit(1)
+        raise InstallerFatalError(f"dependencies.json not found at {deps_file}")
 
     deps = load_dependencies(deps_file)
 
@@ -277,7 +287,7 @@ def _handle_partial_install(
         # Restore logs
         if logs_backup and logs_backup.exists():
             shutil.copytree(logs_backup, logs_dir)
-            shutil.rmtree(logs_backup.parent, ignore_errors=True)
+            shutil.rmtree(logs_backup, ignore_errors=True)
 
         log.sub("Partial installation removed.", style="success")
     else:

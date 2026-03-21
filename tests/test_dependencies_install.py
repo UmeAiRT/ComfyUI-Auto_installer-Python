@@ -100,16 +100,13 @@ class TestInstallWheels:
 
         wheel_mock = MagicMock()
         wheel_mock.name = "test-package"
-        wheel_mock.resolve.return_value = ("test_pkg-1.0-cp313", "https://example.com/test.whl")
+        wheel_mock.resolve.return_value = ("test_pkg-1.0-cp313", "https://example.com/test.whl", None)
 
         deps = MagicMock()
         deps.pip_packages.wheels = [wheel_mock]
 
-        mock_result = MagicMock()
-        mock_result.stdout = "3 13"
-
         with (
-            patch("subprocess.run", return_value=mock_result),
+            patch("src.utils.python_info.detect_venv_python_version", return_value=(3, 13)),
             patch("src.installer.dependencies.download_file") as mock_dl,
             patch("src.installer.dependencies.uv_install") as mock_uv,
         ):
@@ -143,11 +140,8 @@ class TestInstallWheels:
         deps = MagicMock()
         deps.pip_packages.wheels = [wheel_mock]
 
-        mock_result = MagicMock()
-        mock_result.stdout = "3 13"
-
         with (
-            patch("subprocess.run", return_value=mock_result),
+            patch("src.utils.python_info.detect_venv_python_version", return_value=(3, 13)),
             patch("src.installer.dependencies.download_file") as mock_dl,
         ):
             install_wheels(python_exe, install_path, deps, log)
@@ -164,16 +158,13 @@ class TestInstallWheels:
 
         wheel_mock = MagicMock()
         wheel_mock.name = "fail-pkg"
-        wheel_mock.resolve.return_value = ("fail-1.0", "https://example.com/fail.whl")
+        wheel_mock.resolve.return_value = ("fail-1.0", "https://example.com/fail.whl", None)
 
         deps = MagicMock()
         deps.pip_packages.wheels = [wheel_mock]
 
-        mock_result = MagicMock()
-        mock_result.stdout = "3 12"
-
         with (
-            patch("subprocess.run", return_value=mock_result),
+            patch("src.utils.python_info.detect_venv_python_version", return_value=(3, 12)),
             patch(
                 "src.installer.dependencies.download_file",
                 side_effect=Exception("network error"),

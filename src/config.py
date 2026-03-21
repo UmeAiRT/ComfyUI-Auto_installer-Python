@@ -20,6 +20,7 @@ class ToolConfig(BaseModel):
     install_path: str = ""
     url: str = ""
     arguments: str = ""
+    sha256: str = ""
 
 
 class ToolsConfig(BaseModel):
@@ -27,10 +28,12 @@ class ToolsConfig(BaseModel):
 
     vs_build_tools: ToolConfig = Field(default_factory=ToolConfig)
     git_windows: ToolConfig = Field(default_factory=lambda: ToolConfig(
-        url="https://github.com/git-for-windows/git/releases/download/v2.47.1.windows.1/Git-2.47.1-64-bit.exe"
+        url="https://huggingface.co/UmeAiRT/ComfyUI-Auto_installer/resolve/main/bin/Git-2.53.0.2-64-bit.exe",
+        sha256="194362cf24cd0db4b573096108460a34c7f80a20c5f2aa60d06ef817be9f73a1",
     ))
     aria2_windows: ToolConfig = Field(default_factory=lambda: ToolConfig(
-        url="https://github.com/aria2/aria2/releases/download/release-1.37.0/aria2-1.37.0-win-64bit-build1.zip"
+        url="https://huggingface.co/UmeAiRT/ComfyUI-Auto_installer/resolve/main/bin/aria2-1.37.0-win-64bit-build1.zip",
+        sha256="67d015301eef0b612191212d564c5bb0a14b5b9c4796b76454276a4d28d9b288",
     ))
 
 
@@ -48,21 +51,25 @@ class WheelConfig(BaseModel):
     each key is a CPython tag (e.g. ``"cp311"``, ``"cp312"``)
     and the value is the download URL for that version.
 
+    Optionally, ``checksums`` maps CPython tags to expected
+    SHA-256 hex digests for supply-chain verification.
+
     Legacy format (flat ``name`` + ``url``) is still supported.
     """
 
     name: str = ""
     url: str = ""
     versions: dict[str, str] = Field(default_factory=dict)
+    checksums: dict[str, str] = Field(default_factory=dict)
 
-    def resolve(self, python_version: tuple[int, int]) -> tuple[str, str] | None:
+    def resolve(self, python_version: tuple[int, int]) -> tuple[str, str, str | None] | None:
         """Pick the wheel matching the running Python.
 
         Args:
             python_version: (major, minor) tuple, e.g. (3, 13).
 
         Returns:
-            (name, url) tuple, or None if no match.
+            (name, url, sha256_or_None) tuple, or None if no match.
         """
         tag = f"cp{python_version[0]}{python_version[1]}"
 
@@ -70,12 +77,13 @@ class WheelConfig(BaseModel):
             url = self.versions.get(tag)
             if url:
                 whl_name = url.rsplit("/", 1)[-1].removesuffix(".whl")
-                return whl_name, url
+                checksum = self.checksums.get(tag)
+                return whl_name, url, checksum
             return None
 
         # Legacy: flat name + url (assumed to match current Python)
         if self.name and self.url:
-            return self.name, self.url
+            return self.name, self.url, None
         return None
 
 

@@ -20,6 +20,7 @@ from typing import TYPE_CHECKING
 
 from pydantic import BaseModel, Field
 
+from src.enums import NodeTier
 from src.utils.commands import CommandError, run_and_log
 from src.utils.packaging import uv_install
 
@@ -30,10 +31,10 @@ if TYPE_CHECKING:
 
 
 # Tier hierarchy — each tier includes all nodes from lower tiers.
-TIER_HIERARCHY: dict[str, set[str]] = {
-    "minimal": {"minimal"},
-    "umeairt": {"minimal", "umeairt"},
-    "full": {"minimal", "umeairt", "full"},
+TIER_HIERARCHY: dict[NodeTier, set[NodeTier]] = {
+    NodeTier.MINIMAL: {NodeTier.MINIMAL},
+    NodeTier.UMEAIRT: {NodeTier.MINIMAL, NodeTier.UMEAIRT},
+    NodeTier.FULL: {NodeTier.MINIMAL, NodeTier.UMEAIRT, NodeTier.FULL},
 }
 
 VALID_TIERS = list(TIER_HIERARCHY.keys())
@@ -86,7 +87,11 @@ def filter_by_tier(manifest: NodeManifest, tier: str) -> NodeManifest:
     Returns:
         A filtered NodeManifest.
     """
-    allowed = TIER_HIERARCHY.get(tier, TIER_HIERARCHY["full"])
+    try:
+        tier_key = NodeTier(tier) if isinstance(tier, str) else tier
+    except ValueError:
+        tier_key = NodeTier.FULL
+    allowed = TIER_HIERARCHY.get(tier_key, TIER_HIERARCHY[NodeTier.FULL])
     filtered = [n for n in manifest.nodes if n.tier in allowed]
     return NodeManifest(nodes=filtered)
 
