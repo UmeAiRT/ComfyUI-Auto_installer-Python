@@ -31,7 +31,7 @@ jobs:
         run: pip install ruff bandit
 
       - name: Ruff (lint)
-        run: ruff check src/ --config pyproject.toml
+        run: ruff check src/ tests/ --config pyproject.toml
 
       - name: Bandit (security)
         run: bandit -r src/ -c pyproject.toml -ll
@@ -103,4 +103,4 @@ jobs:
       - name: Run tests with coverage
         run: |
           coverage run --source=src -m pytest tests/ -q
-          coverage report -m --skip-covered --fail-under=45
+          coverage report -m --skip-covered --fail-under=50

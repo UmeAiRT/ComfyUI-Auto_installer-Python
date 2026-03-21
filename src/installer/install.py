@@ -234,6 +234,21 @@ def run_install(
 
     # ── Done ──────────────────────────────────────────────────────
     marker.unlink(missing_ok=True)
+
+    # Installation summary table
+    from rich.table import Table
+
+    summary = Table(title="Installation Summary", show_header=False, border_style="green")
+    summary.add_column("Key", style="bold")
+    summary.add_column("Value")
+    summary.add_row("Install Path", str(install_path))
+    summary.add_row("Environment", install_type.value)
+    summary.add_row("Node Tier", node_tier.value)
+    summary.add_row("Python", str(python_exe))
+    summary.add_row("Platform", platform.name)
+    from src.utils.logging import console
+    console.print(summary)
+
     log.success("Installation Complete!", level=0)
     log.success("ComfyUI and all components have been installed.", level=1)
     log.item("Double-click UmeAiRT-Start-ComfyUI to launch!")
