@@ -100,10 +100,8 @@
 ### ~~6.4 `Save-File` Assumes Existing Files Valid~~ ✅
 > **Done:** `download_file()` checksums all downloads. Existing files re-verified.
 
-### 6.5 CUDA Version Verification
-- **Status:** Not yet implemented.
-- **Priority:** Medium — prevents confusing runtime errors. `gpu.py` already calls `nvidia-smi`.
-- **Action:** Parse CUDA version from `nvidia-smi`, compare against PyTorch index URL (e.g. `cu130` → CUDA 13.0+). Warn early.
+### ~~6.5 CUDA Version Verification~~ ✅
+> **Done:** `gpu.py` detects driver version, maps to maximum supported CUDA version, and `install.py` validates it against `dependencies.json`'s supported lists (including AMD ROCm/DirectML targets), offering intelligent fallbacks.
 
 ---
 
@@ -119,7 +117,7 @@
 - [x] ~~Document listen address~~ → defaults to 127.0.0.1
 - [x] ~~Document UV migration~~ → UV is default, no migration needed
 - [ ] Document compiler toolchain options (for insightface source build)
-- [ ] Add security policy (`SECURITY.md`)
+- [x] Add security policy (`SECURITY.md`)
 - [x] ~~Document junction architecture~~ → in CONTRIBUTING.md
 - [x] ~~CONTRIBUTING.md created~~
 
@@ -156,12 +154,8 @@
 ### ~~10.3 Release Signing~~ → Deferred
 > Not applicable — no releases published. Installation via git clone / one-liner.
 
-### 10.4 macOS Support
-- **Priority:** Medium — `Platform` ABC ready, `MacOSPlatform` stub exists.
-- [ ] Implement `MacOSPlatform` in `src/platform/macos.py`
-- [ ] Handle Apple Silicon (MPS) vs Intel
-- [ ] Test on macOS CI runner
-- [ ] Re-add macOS badge to README once verified
+### ~~10.4 macOS Support~~ ✅
+> **Done:** `MacOSPlatform` implemented. Native MPS/CPU handled automatically without CUDA contamination. Badge added to README. Tests added.
 
 ### 10.5 `--dry-run` Mode
 - **Priority:** Low — deferred for later.
@@ -170,11 +164,7 @@
 
 ## Priority Order (Updated)
 
-1. **CUDA version verification** — prevents confusing runtime errors (§6.5)
-2. **Legacy migration path** — needed before merging to `main` (§2.2)
-3. **macOS support** — Platform ABC ready, needs implementation (§10.4)
-4. **Integration test in CI** — full install on Windows VM (§9)
-5. **SECURITY.md** — responsible disclosure policy (§8)
-6. **Container support** — for advanced users (§10.1)
-7. **Constraints file** — power user feature (§2.3)
-8. **Deprecation audit** — cosmetic (§4.2)
+1. **Integration test in CI** — full install on Windows VM (§9)
+2. **Container support** — for advanced users (§10.1)
+3. **Constraints file** — power user feature (§2.3)
+4. **Deprecation audit** — cosmetic (§4.2)
