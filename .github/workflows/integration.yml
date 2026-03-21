@@ -1,8 +1,6 @@
 name: Integration Tests
 
 on:
-  push:
-    branches: [python-rewrite]
   workflow_dispatch:
   schedule:
     - cron: '0 0 * * 0' # Run weekly on Sunday
@@ -23,9 +21,13 @@ jobs:
         run: pip install -e .
 
       - name: Run Install Phase
+        env:
+          PYTHONUTF8: "1"
         run: python -m src.cli install --path C:\comfyui_test --type venv --yes --verbose
 
       - name: Run Update Phase
+        env:
+          PYTHONUTF8: "1"
         run: python -m src.cli update --path C:\comfyui_test --yes --verbose
 
       - name: Verify Launchers exist

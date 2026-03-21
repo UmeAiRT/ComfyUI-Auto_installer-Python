@@ -62,19 +62,6 @@
           "cu128_cp312": "9257183fa7789be92f67a22f715ee31ed488e154913ef3946502320c6d1d9dea",
           "cu128_cp313": "94021d1f2691bb35a3b5c64306fe7a5c5864a6c4c2c0fef3dbff46aaaf6c0953"
         }
-      },
-      {
-        "name": "insightface",
-        "versions": {
-          "cp311": "https://huggingface.co/UmeAiRT/ComfyUI-Auto_installer/resolve/main/whl/insightface-0.7.3-cp311-cp311-win_amd64.whl",
-          "cp312": "https://huggingface.co/UmeAiRT/ComfyUI-Auto_installer/resolve/main/whl/insightface-0.7.3-cp312-cp312-win_amd64.whl",
-          "cp313": "https://huggingface.co/UmeAiRT/ComfyUI-Auto_installer/resolve/main/whl/insightface-0.7.3-cp313-cp313-win_amd64.whl"
-        },
-        "checksums": {
-          "cp311": "ea9b96de0f3cada1c031e3c566d2dfcb2ff45b0b7cca88e27f583ed9ef386561",
-          "cp312": "4e58a504433ba5a500d48328689e7d6c69873165653ded7553ce804beb8723db",
-          "cp313": "ebe005bfc7ab874f9ec83f31cae03eea3a084d95cf9549dcdbac3f23222346d1"
-        }
       }
     ],
     "standard": [
