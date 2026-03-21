@@ -9,8 +9,12 @@ from __future__ import annotations
 
 import subprocess
 from dataclasses import dataclass
+from typing import TYPE_CHECKING
 
 from src.utils.logging import get_logger
+
+if TYPE_CHECKING:
+    from src.utils.logging import InstallerLogger
 
 # NVIDIA driver version → minimum CUDA toolkit version mapping.
 # Source: https://docs.nvidia.com/cuda/cuda-toolkit-release-notes/index.html
@@ -68,14 +72,15 @@ def detect_cuda_version() -> tuple[int, int] | None:
         return None
 
 
-def detect_nvidia_gpu() -> bool:
+def detect_nvidia_gpu(log: InstallerLogger | None = None) -> bool:
     """
     Check for the presence of an NVIDIA GPU.
 
     Returns:
         True if an NVIDIA GPU is detected, False otherwise.
     """
-    log = get_logger()
+    if log is None:
+        log = get_logger()
     log.item("Checking for NVIDIA GPU...")
 
     try:
@@ -97,7 +102,7 @@ def detect_nvidia_gpu() -> bool:
         return False
 
 
-def check_amd_gpu() -> bool:
+def check_amd_gpu(log: InstallerLogger | None = None) -> bool:
     """
     Check for the presence of an AMD GPU using OS-native commands.
 
@@ -106,7 +111,8 @@ def check_amd_gpu() -> bool:
     """
     import platform
 
-    log = get_logger()
+    if log is None:
+        log = get_logger()
     log.item("Checking for AMD GPU...")
 
     if platform.system() == "Windows":
@@ -218,14 +224,15 @@ def cuda_tag_from_version(cuda: tuple[int, int] | None) -> str | None:
     return None
 
 
-def display_gpu_recommendations() -> GpuInfo | None:
+def display_gpu_recommendations(log: InstallerLogger | None = None) -> GpuInfo | None:
     """
     Detect GPU and display VRAM-based model recommendations.
 
     Returns:
         The detected GpuInfo or None.
     """
-    log = get_logger()
+    if log is None:
+        log = get_logger()
 
     log.log("─" * 70, level=-2)
     log.item("Checking for NVIDIA GPU to provide model recommendations...", style="warning")

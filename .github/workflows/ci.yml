@@ -61,7 +61,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, windows-latest]
+        os: [ubuntu-latest, windows-latest, macos-latest]
         python-version: ['3.11', '3.12', '3.13']
 
     steps:
@@ -86,7 +86,7 @@ jobs:
     needs: test
     strategy:
       matrix:
-        os: [ubuntu-latest, windows-latest]
+        os: [ubuntu-latest, windows-latest, macos-latest]
     steps:
       - uses: actions/checkout@v4
 
@@ -103,4 +103,4 @@ jobs:
       - name: Run tests with coverage
         run: |
           coverage run --source=src -m pytest tests/ -q -m "not integration"
-          coverage report -m --skip-covered --fail-under=50
+          coverage report -m --skip-covered --fail-under=70

@@ -35,6 +35,10 @@ class ToolsConfig(BaseModel):
         url="https://huggingface.co/UmeAiRT/ComfyUI-Auto_installer/resolve/main/bin/aria2-1.37.0-win-64bit-build1.zip",
         sha256="67d015301eef0b612191212d564c5bb0a14b5b9c4796b76454276a4d28d9b288",
     ))
+    miniconda_windows: ToolConfig = Field(default_factory=lambda: ToolConfig(
+        url="https://repo.anaconda.com/miniconda/Miniconda3-latest-Windows-x86_64.exe",
+        sha256="c76f35d66f8a19a3b33786abb86dacf0bf8d892a55d9dde38eccb0da0820ae99",
+    ))
 
 
 class TorchConfig(BaseModel):

@@ -16,9 +16,13 @@ try:
 except ImportError:
     winreg = None  # Only used on Windows, but caught for cross-platform CI tests
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 from src.platform.base import Platform
 from src.utils.logging import get_logger
+
+if TYPE_CHECKING:
+    from src.utils.logging import InstallerLogger
 
 
 class WindowsPlatform(Platform):
@@ -28,7 +32,7 @@ class WindowsPlatform(Platform):
     def name(self) -> str:
         return "windows"
 
-    def create_link(self, source: Path, target: Path) -> None:
+    def create_link(self, source: Path, target: Path, log: InstallerLogger | None = None) -> None:
         """
         Create an NTFS junction (directory link).
 
@@ -37,11 +41,13 @@ class WindowsPlatform(Platform):
         Args:
             source: The junction path to create (inside ComfyUI).
             target: The target directory (external folder).
+            log: Optional logger instance.
 
         Raises:
             RuntimeError: If junction creation fails.
         """
-        log = get_logger()
+        if log is None:
+            log = get_logger()
 
         if source.exists():
             if self.is_link(source):
@@ -78,7 +84,7 @@ class WindowsPlatform(Platform):
         except (AttributeError, OSError):
             return False
 
-    def enable_long_paths(self) -> bool:
+    def enable_long_paths(self, log: InstallerLogger | None = None) -> bool:
         """
         Enable Windows long path support via registry.
 
@@ -87,7 +93,8 @@ class WindowsPlatform(Platform):
         Returns:
             True if enabled or already enabled, False on failure.
         """
-        log = get_logger()
+        if log is None:
+            log = get_logger()
 
         reg_path = r"SYSTEM\CurrentControlSet\Control\FileSystem"
         reg_key = "LongPathsEnabled"
@@ -122,7 +129,7 @@ class WindowsPlatform(Platform):
             log.error(f"Failed to enable long paths: {e}", level=2)
             return False
 
-    def detect_python(self, version: str = "3.13") -> Path | None:
+    def detect_python(self, version: str = "3.13", log: InstallerLogger | None = None) -> Path | None:
         """
         Detect a specific Python version on Windows.
 
@@ -130,11 +137,13 @@ class WindowsPlatform(Platform):
 
         Args:
             version: The version to look for (e.g. "3.13").
+            log: Optional logger instance.
 
         Returns:
             Path to python.exe, or None.
         """
-        log = get_logger()
+        if log is None:
+            log = get_logger()
 
         # 1. Try Python Launcher (py -3.13)
         py_launcher = shutil.which("py")

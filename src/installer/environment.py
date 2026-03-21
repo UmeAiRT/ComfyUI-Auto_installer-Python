@@ -26,6 +26,7 @@ from src.utils.download import download_file
 from src.utils.prompts import confirm
 
 if TYPE_CHECKING:
+    from src.config import DependenciesConfig
     from src.utils.logging import InstallerLogger
 
 
@@ -235,14 +236,41 @@ def _find_conda(log: InstallerLogger) -> Path | None:
     return None
 
 
-def _install_miniconda_windows(log: InstallerLogger) -> Path | None:
-    """Download and install Miniconda on Windows in silent mode."""
-    conda_url = "https://repo.anaconda.com/miniconda/Miniconda3-latest-Windows-x86_64.exe"
+def _install_miniconda_windows(
+    log: InstallerLogger,
+    deps: DependenciesConfig | None = None,
+) -> Path | None:
+    """Download and install Miniconda on Windows in silent mode.
+
+    Args:
+        log: Installer logger.
+        deps: Optional dependencies config — if provided, uses the
+            ``tools.miniconda_windows`` SHA-256 for integrity verification.
+    """
+    # Use config URL/hash if available, otherwise fall back to default
+    if deps and deps.tools.miniconda_windows.url:
+        conda_url = deps.tools.miniconda_windows.url
+        expected_hash = deps.tools.miniconda_windows.sha256
+    else:
+        conda_url = "https://repo.anaconda.com/miniconda/Miniconda3-latest-Windows-x86_64.exe"
+        expected_hash = ""
+
     installer_path = Path(os.environ.get("TEMP", ".")) / "Miniconda3-installer.exe"
 
     try:
         log.item("Downloading Miniconda...")
         download_file(conda_url, installer_path)
+
+        # Verify SHA-256 integrity using the hash from dependencies.json
+        if expected_hash:
+            import hashlib
+
+            actual_hash = hashlib.sha256(installer_path.read_bytes()).hexdigest().lower()
+            if actual_hash != expected_hash.lower():
+                log.error("Miniconda checksum verification failed! File may be corrupted.")
+                installer_path.unlink(missing_ok=True)
+                return None
+            log.sub("Miniconda checksum verified ✓", style="success")
 
         install_dir = Path(os.environ.get("LOCALAPPDATA", "")) / "Miniconda3"
 
@@ -285,8 +313,8 @@ def find_source_scripts() -> Path:
     Falls back to ``Path.cwd() / "scripts"`` to support installed environments (like CI).
 
     Raises:
-        FileNotFoundError: if the scripts directory or dependencies.json is missing.
-        This enforces that the package is running intact.
+        FileNotFoundError: If the scripts directory or dependencies.json
+            is missing (enforces package integrity).
     """
     package_root = Path(__file__).resolve().parent.parent.parent
     candidate = package_root / "scripts"
@@ -336,7 +364,7 @@ def provision_scripts(install_path: Path, log: InstallerLogger) -> None:
         source_dir = find_source_scripts()
     except FileNotFoundError as e:
         log.error(str(e))
-        raise SystemExit(1) from None
+        raise InstallerFatalError(str(e)) from None
 
     dest_dir = install_path / "scripts"
     dest_dir.mkdir(parents=True, exist_ok=True)

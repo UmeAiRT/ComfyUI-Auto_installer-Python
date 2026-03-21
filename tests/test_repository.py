@@ -8,6 +8,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from src.installer.repository import EXTERNAL_FOLDERS, clone_comfyui, setup_git_config
+from src.enums import InstallerFatalError
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -61,7 +62,7 @@ class TestCloneComfyui:
 
         with (
             patch("src.installer.repository.run_and_log", side_effect=CommandError("git", 1, "fail")),
-            pytest.raises(SystemExit),
+            pytest.raises(InstallerFatalError),
         ):
             clone_comfyui(tmp_path, comfy_path, deps, log, max_retries=2)
 
@@ -88,7 +89,7 @@ class TestCloneComfyui:
 
         with (
             patch("src.installer.repository.run_and_log", side_effect=side_effect),
-            pytest.raises(SystemExit),
+            pytest.raises(InstallerFatalError),
         ):
             clone_comfyui(tmp_path, comfy_path, deps, log, max_retries=2)
 

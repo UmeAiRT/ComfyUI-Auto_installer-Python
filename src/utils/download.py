@@ -11,6 +11,7 @@ import hashlib
 import shutil
 import subprocess
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 import httpx
 from rich.progress import (
@@ -23,6 +24,9 @@ from rich.progress import (
 )
 
 from src.utils.logging import get_logger
+
+if TYPE_CHECKING:
+    from src.utils.logging import InstallerLogger
 
 
 def _find_aria2c(aria2c_hint: Path | None = None) -> Path | None:
@@ -84,13 +88,15 @@ def _download_with_aria2c(
     aria2c_path: Path,
     *,
     quiet: bool = True,
+    log: InstallerLogger | None = None,
 ) -> bool:
     """
     Download using aria2c for maximum speed.
 
     Returns True on success, False on failure.
     """
-    log = get_logger()
+    if log is None:
+        log = get_logger()
 
     args = [
         str(aria2c_path),
@@ -161,6 +167,7 @@ def download_file(
     force: bool = False,
     quiet: bool = True,
     aria2c_hint: Path | None = None,
+    log: InstallerLogger | None = None,
 ) -> Path:
     """
     Download a file from one or more URLs to a destination path.
@@ -188,7 +195,8 @@ def download_file(
         RuntimeError: If all URLs fail or checksum doesn't match.
     """
     dest = Path(dest)
-    log = get_logger()
+    if log is None:
+        log = get_logger()
 
     # Normalise to list
     urls: list[str] = [url] if isinstance(url, str) else list(url)

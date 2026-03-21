@@ -18,6 +18,7 @@ from __future__ import annotations
 import shutil
 from typing import TYPE_CHECKING
 
+from src.enums import InstallerFatalError
 from src.platform.base import get_platform
 from src.utils.commands import CommandError, run_and_log
 
@@ -95,7 +96,7 @@ def clone_comfyui(
             log.warning(f"Clone attempt {attempt}/{max_retries} failed, retrying...", level=2)
         else:
             log.error(f"ComfyUI cloning failed after {max_retries} attempts!")
-            raise SystemExit(1)
+            raise InstallerFatalError(f"ComfyUI cloning failed after {max_retries} attempts!")
 
 
 def setup_junction_architecture(

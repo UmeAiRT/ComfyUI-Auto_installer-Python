@@ -136,7 +136,7 @@ The installer uses a **junction-based architecture** to separate user data from 
 
 ```
 install_path/
-├── .installer_venv/         # Isolated environment for the installer logic
+├── scripts/venv/            # Python virtual environment (venv or conda)
 ├── ComfyUI/                 # Git repo (can be wiped for updates)
 │   ├── models/ → ../models  # ← junction (symlink)
 │   ├── output/ → ../output  # ← junction

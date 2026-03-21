@@ -15,6 +15,8 @@ from src.utils.logging import get_logger
 if TYPE_CHECKING:
     from pathlib import Path
 
+    from src.utils.logging import InstallerLogger
+
 
 class CommandError(Exception):
     """Raised when an external command fails."""
@@ -34,6 +36,7 @@ def run_and_log(
     ignore_errors: bool = False,
     timeout: int = 600,
     env: dict[str, str] | None = None,
+    log: InstallerLogger | None = None,
 ) -> subprocess.CompletedProcess[str]:
     """
     Execute an external command, logging both the command and its output.
@@ -56,7 +59,8 @@ def run_and_log(
     Raises:
         CommandError: If command fails and ignore_errors is False.
     """
-    log = get_logger()
+    if log is None:
+        log = get_logger()
 
     full_args = [str(command)] + (args or [])
     cmd_display = " ".join(full_args)

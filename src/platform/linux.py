@@ -11,9 +11,13 @@ import os
 import shutil
 import subprocess
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 from src.platform.base import Platform
 from src.utils.logging import get_logger
+
+if TYPE_CHECKING:
+    from src.utils.logging import InstallerLogger
 
 
 class LinuxPlatform(Platform):
@@ -23,50 +27,18 @@ class LinuxPlatform(Platform):
     def name(self) -> str:
         return "linux"
 
-    def create_link(self, source: Path, target: Path) -> None:
-        """
-        Create a symbolic link.
-
-        Args:
-            source: The symlink path to create (inside ComfyUI).
-            target: The target directory (external folder).
-
-        Raises:
-            RuntimeError: If symlink creation fails.
-        """
-        log = get_logger()
-
-        if source.exists():
-            if self.is_link(source):
-                log.info(f"Symlink already exists: {source.name}")
-                return
-            else:
-                raise RuntimeError(
-                    f"Cannot create symlink: '{source}' already exists and is not a symlink. "
-                    "Please remove it manually."
-                )
-
-        try:
-            os.symlink(str(target), str(source))
-        except OSError as e:
-            raise RuntimeError(f"Failed to create symlink '{source}' → '{target}': {e}") from e
-
-        if not source.exists():
-            raise RuntimeError(f"Symlink creation returned success but '{source}' does not exist.")
-
-        log.sub(f"Linked {source.name} → {target.name} (External)", style="cyan")
-
     def is_admin(self) -> bool:
         """Check if running as root."""
         return os.getuid() == 0
 
-    def enable_long_paths(self) -> bool:
+    def enable_long_paths(self, log: InstallerLogger | None = None) -> bool:
         """No-op on Linux — long paths are always supported."""
-        log = get_logger()
+        if log is None:
+            log = get_logger()
         log.sub("Long path support: native (no action needed).", style="success")
         return True
 
-    def detect_python(self, version: str = "3.13") -> Path | None:
+    def detect_python(self, version: str = "3.13", log: InstallerLogger | None = None) -> Path | None:
         """
         Detect a specific Python version on Linux.
 
@@ -74,11 +46,13 @@ class LinuxPlatform(Platform):
 
         Args:
             version: The version to look for (e.g. "3.13").
+            log: Optional logger instance.
 
         Returns:
             Path to python executable, or None.
         """
-        log = get_logger()
+        if log is None:
+            log = get_logger()
 
         # 1. Try version-specific binary (e.g. python3.13)
         versioned = shutil.which(f"python{version}")

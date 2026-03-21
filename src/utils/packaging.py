@@ -18,6 +18,8 @@ if TYPE_CHECKING:
     import subprocess
     from pathlib import Path
 
+    from src.utils.logging import InstallerLogger
+
 
 class UvNotFoundError(RuntimeError):
     """Raised when ``uv`` is not available on the system."""
@@ -52,6 +54,7 @@ def uv_install(
     editable: Path | None = None,
     ignore_errors: bool = False,
     timeout: int = 600,
+    log: InstallerLogger | None = None,
 ) -> subprocess.CompletedProcess[str]:
     """Install Python packages via ``uv pip install``.
 
@@ -80,7 +83,8 @@ def uv_install(
         CommandError: If the command fails and *ignore_errors* is False.
     """
     uv_path = _ensure_uv()
-    log = get_logger()
+    if log is None:
+        log = get_logger()
 
     args: list[str] = ["pip", "install", "--python", str(python_exe)]
 

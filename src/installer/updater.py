@@ -105,14 +105,37 @@ def update_dependencies(
 
     # Update torch
     if confirm("Update PyTorch? (Only if there's a new CUDA version)"):
-        torch_pkgs = deps.pip_packages.torch.packages.split()
-        log.item("Updating PyTorch...")
-        uv_install(
-            python_exe,
-            torch_pkgs,
-            index_url=deps.pip_packages.torch.index_url,
-            upgrade=True,
-        )
+        # Detect CUDA tag from the currently installed torch build
+        from src.installer.optimizations import _get_cuda_version_from_torch
+
+        cuda_ver = _get_cuda_version_from_torch(python_exe)
+        cuda_tag: str | None = None
+        if cuda_ver:
+            try:
+                parts = cuda_ver.split(".")
+                from src.utils.gpu import cuda_tag_from_version
+                cuda_tag = cuda_tag_from_version((int(parts[0]), int(parts[1])))
+            except (ValueError, IndexError):
+                pass
+
+        # Fallback: use first supported tag from config
+        if cuda_tag is None:
+            supported = deps.pip_packages.supported_cuda_tags
+            cuda_tag = supported[0] if supported else "cu130"
+            log.sub(f"Could not detect CUDA from torch. Using {cuda_tag}.", style="yellow")
+
+        torch_cfg = deps.pip_packages.get_torch(cuda_tag)
+        if torch_cfg:
+            torch_pkgs = torch_cfg.packages.split()
+            log.item(f"Updating PyTorch [{cuda_tag}]...")
+            uv_install(
+                python_exe,
+                torch_pkgs,
+                index_url=torch_cfg.index_url,
+                upgrade=True,
+            )
+        else:
+            log.warning(f"No PyTorch config for '{cuda_tag}'. Skipping torch update.", level=1)
 
 
 def run_update(install_path: Path, *, verbose: bool = False) -> None:

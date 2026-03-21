@@ -208,46 +208,9 @@ def run_install(
     setup_junction_architecture(install_path, comfy_path, log)
 
     # ── Step 6b: GPU Detection & Selection ────────────────────────────
-    from src.utils.gpu import check_amd_gpu, cuda_tag_from_version, detect_cuda_version
-    from src.utils.prompts import confirm
+    from src.installer.gpu_setup import detect_and_select_gpu
 
-    if cuda_version:
-        cuda_tag = cuda_version
-        log.sub(f"Using manual GPU override: {cuda_tag}", style="success")
-    elif platform.name == "macos":
-        log.sub("macOS detected — skipping GPU detection (using MPS).", style="info")
-        cuda_tag = None
-    else:
-        cuda_version_detected = detect_cuda_version()
-        cuda_tag = cuda_tag_from_version(cuda_version_detected)
-        supported = deps.pip_packages.supported_cuda_tags
-
-        if cuda_tag and cuda_tag in supported:
-            log.sub(
-                f"NVIDIA CUDA {cuda_version_detected[0]}.{cuda_version_detected[1]}"
-                f" detected → using {cuda_tag}", style="success",
-            )
-        elif cuda_version_detected:  # Has NVIDIA, but toolkit unsupported
-            log.warning(
-                f"NVIDIA CUDA {cuda_version_detected[0]}.{cuda_version_detected[1]} detected (tag: {cuda_tag}) "
-                f"but not in supported list: {', '.join(supported)}. (Falling back to cu130)",
-                level=1,
-            )
-            cuda_tag = "cu130"
-        elif check_amd_gpu():
-            # AMD GPU logic
-            log.sub("AMD GPU detected.", style="success")
-            if platform.name == "linux":
-                cuda_tag = "rocm71"
-                log.sub(f"Using Linux AMD configuration: {cuda_tag}", style="cyan")
-            else:
-                cuda_tag = "directml"
-                log.sub(f"Using Windows AMD configuration: {cuda_tag}", style="cyan")
-        else:
-            log.warning("No NVIDIA or AMD GPU detected.", level=1)
-            if not confirm("Continue anyway? (PyTorch will install CPU-only without GPU support)", default=True):
-                raise InstallerFatalError("No physical GPU detected. Aborting.")
-            cuda_tag = "cpu"
+    cuda_tag = detect_and_select_gpu(platform, deps, log, cuda_override=cuda_version)
 
     # ── Step 7: Core Dependencies ─────────────────────────────────
     log.step("Core Dependencies")

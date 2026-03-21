@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import json
 from typing import TYPE_CHECKING
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -155,3 +155,62 @@ class TestMergeNodeManifests:
         assert added == 0
         # File should not have been rewritten
         assert dest.stat().st_mtime == mtime_before
+
+
+class TestUpdateDependencies:
+    """Tests for update_dependencies (previously untested)."""
+
+    def test_skips_when_no_deps_file(self, tmp_path: Path) -> None:
+        """Should skip gracefully when dependencies.json is absent."""
+        from src.installer.updater import update_dependencies
+
+        log = MagicMock()
+        python_exe = tmp_path / "python.exe"
+        comfy_path = tmp_path / "ComfyUI"
+        install_path = tmp_path / "install"
+        install_path.mkdir()
+        # No scripts/dependencies.json
+
+        update_dependencies(python_exe, comfy_path, install_path, log)
+        log.warning.assert_called_once()
+
+    def test_torch_update_uses_get_torch(self, tmp_path: Path) -> None:
+        """Should use get_torch(cuda_tag) instead of direct .torch access."""
+        from src.installer.updater import update_dependencies
+
+        log = MagicMock()
+        python_exe = tmp_path / "python.exe"
+        comfy_path = tmp_path / "ComfyUI"
+        install_path = tmp_path / "install"
+        scripts_dir = install_path / "scripts"
+        scripts_dir.mkdir(parents=True)
+
+        # Create a minimal deps file with multi-CUDA torch config (the case that crashed)
+        import json
+        deps_data = {
+            "repositories": {"comfyui": {"url": "https://example.com"}},
+            "pip_packages": {
+                "comfyui_requirements": "requirements.txt",
+                "torch": {
+                    "cu130": {"packages": "torch torchvision", "index_url": "https://torch.url/cu130"},
+                    "cu128": {"packages": "torch torchvision", "index_url": "https://torch.url/cu128"},
+                },
+                "packages": [],
+            },
+        }
+        (scripts_dir / "dependencies.json").write_text(json.dumps(deps_data), encoding="utf-8")
+
+        # Mock all external calls
+        with (
+            patch("src.installer.updater.confirm", return_value=True),
+            patch("src.installer.updater.uv_install") as mock_uv,
+            patch("src.installer.optimizations._get_cuda_version_from_torch", return_value=None),
+        ):
+            # This call would crash before the fix with:
+            # AttributeError: 'dict' object has no attribute 'packages'
+            update_dependencies(python_exe, comfy_path, install_path, log)
+
+        # Should have called uv_install for torch with the fallback tag
+        torch_calls = [c for c in mock_uv.call_args_list if c[0][1] and "torch" in c[0][1]]
+        assert len(torch_calls) >= 1
+

@@ -7,6 +7,7 @@ a common interface for operations that differ between Windows, Linux, and macOS.
 
 from __future__ import annotations
 
+import os
 import sys
 from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING
@@ -14,20 +15,50 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from pathlib import Path
 
+    from src.utils.logging import InstallerLogger
+
 
 class Platform(ABC):
     """Abstract base class for platform-specific operations."""
 
-    @abstractmethod
-    def create_link(self, source: Path, target: Path) -> None:
+    def create_link(self, source: Path, target: Path, log: InstallerLogger | None = None) -> None:
         """
         Create a directory link (junction on Windows, symlink on Unix).
+
+        The default implementation creates a POSIX symlink.
+        WindowsPlatform overrides this with NTFS junctions.
 
         Args:
             source: The link path to create (inside ComfyUI).
             target: The target path (external folder).
+            log: Optional logger instance. Falls back to the singleton.
+
+        Raises:
+            RuntimeError: If link creation fails.
         """
-        ...
+        from src.utils.logging import get_logger
+
+        if log is None:
+            log = get_logger()
+
+        if source.exists():
+            if self.is_link(source):
+                log.info(f"Symlink already exists: {source.name}")
+                return
+            raise RuntimeError(
+                f"Cannot create symlink: '{source}' already exists and is not a symlink. "
+                "Please remove it manually."
+            )
+
+        try:
+            os.symlink(str(target), str(source))
+        except OSError as e:
+            raise RuntimeError(f"Failed to create symlink '{source}' → '{target}': {e}") from e
+
+        if not source.exists():
+            raise RuntimeError(f"Symlink creation returned success but '{source}' does not exist.")
+
+        log.sub(f"Linked {source.name} → {target.name} (External)", style="cyan")
 
     @abstractmethod
     def is_admin(self) -> bool:
@@ -35,7 +66,7 @@ class Platform(ABC):
         ...
 
     @abstractmethod
-    def enable_long_paths(self) -> bool:
+    def enable_long_paths(self, log: InstallerLogger | None = None) -> bool:
         """
         Enable support for long file paths (>260 chars).
 
@@ -45,12 +76,13 @@ class Platform(ABC):
         ...
 
     @abstractmethod
-    def detect_python(self, version: str = "3.13") -> Path | None:
+    def detect_python(self, version: str = "3.13", log: InstallerLogger | None = None) -> Path | None:
         """
         Detect a specific Python version on the system.
 
         Args:
             version: The Python version to look for (e.g. "3.13").
+            log: Optional logger instance.
 
         Returns:
             Path to the Python executable, or None if not found.

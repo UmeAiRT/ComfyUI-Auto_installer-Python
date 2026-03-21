@@ -12,12 +12,12 @@ services:
       # Map the auto-installer's external architecture directly to host directories.
       # This isolates your heavy downloads and generated images outside the container.
       # Upon first boot, the entrypoint will automatically clone missing custom nodes
-      # into the empty bindings!
-      - E:/AI/dev/docker/models:/app/models
-      - E:/AI/dev/docker/custom_nodes:/app/custom_nodes
-      - E:/AI/dev/docker/output:/app/output
-      - E:/AI/dev/docker/input:/app/input
-      - E:/AI/dev/docker/user:/app/user
+      # Edit these paths to match your host machine, or use a .env file.
+      - ./docker_data/models:/app/models
+      - ./docker_data/custom_nodes:/app/custom_nodes
+      - ./docker_data/output:/app/output
+      - ./docker_data/input:/app/input
+      - ./docker_data/user:/app/user
     deploy:
       resources:
         reservations:
