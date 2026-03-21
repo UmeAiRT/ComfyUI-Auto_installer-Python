@@ -256,7 +256,7 @@ def _scan_models_warning(install_path: Path, log: InstallerLogger) -> None:
                 level=1,
             )
             log.sub(
-                "Run 'comfyui-installer scan-models' for details.",
+                "Run 'umeairt-comfyui-installer scan-models' for details.",
                 style="cyan",
             )
         else:
