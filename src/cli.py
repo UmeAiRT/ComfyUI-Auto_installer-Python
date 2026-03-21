@@ -19,7 +19,7 @@ from src.utils.logging import console, setup_logger
 from src.utils.prompts import set_non_interactive
 
 app = typer.Typer(
-    name="comfyui-installer",
+    name="umeairt-comfyui-installer",
     help="Cross-platform automated installer for ComfyUI.",
     no_args_is_help=True,
     rich_markup_mode="rich",
@@ -234,7 +234,7 @@ def info() -> None:
 @app.command()
 def version() -> None:
     """Show the installer version."""
-    console.print(f"comfyui-installer v{__version__}")
+    console.print(f"umeairt-comfyui-installer v{__version__}")
 
 
 if __name__ == "__main__":

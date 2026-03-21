@@ -16,7 +16,7 @@ class TestCLISmoke:
         """--help should include the app name and show available commands."""
         result = runner.invoke(app, ["--help"])
         assert result.exit_code == 0
-        assert "comfyui-installer" in result.output.lower() or "install" in result.output.lower()
+        assert "umeairt-comfyui-installer" in result.output.lower() or "install" in result.output.lower()
 
     def test_install_help(self) -> None:
         """install --help should show all expected options."""

@@ -61,10 +61,10 @@ curl -fsSL https://get.umeai.art/comfyui.sh | sh
 pip install -e .
 
 # Run the installer
-comfyui-installer install --path /path/to/install --type venv
+umeairt-comfyui-installer install --path /path/to/install --type venv
 
 # With verbose output
-comfyui-installer install --path /path/to/install -v
+umeairt-comfyui-installer install --path /path/to/install -v
 ```
 
 ## 📂 Post-Installation
@@ -81,11 +81,11 @@ Four launcher scripts are generated in your install directory:
 ## 🛠️ CLI Commands
 
 ```bash
-comfyui-installer install            # Full installation
-comfyui-installer update             # Update ComfyUI + nodes + deps
-comfyui-installer download-models    # Interactive model downloads
-comfyui-installer info               # Display system info (GPU, Python, tools)
-comfyui-installer version            # Show version
+umeairt-comfyui-installer install            # Full installation
+umeairt-comfyui-installer update             # Update ComfyUI + nodes + deps
+umeairt-comfyui-installer download-models    # Interactive model downloads
+umeairt-comfyui-installer info               # Display system info (GPU, Python, tools)
+umeairt-comfyui-installer version            # Show version
 ```
 
 All commands support `--path` (install directory) and `--verbose` flags.

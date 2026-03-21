@@ -34,7 +34,7 @@ class TestVersionCommand:
     def test_shows_version(self) -> None:
         result = runner.invoke(app, ["version"])
         assert result.exit_code == 0
-        assert "comfyui-installer v" in result.output
+        assert "umeairt-comfyui-installer v" in result.output
 
 
 class TestInfoCommand:

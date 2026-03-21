@@ -55,7 +55,7 @@ graph TD
     A1 --> A2["Download uv (if absent)"]
     A2 --> A3["uv venv --python 3.13 --seed"]
     A3 --> A4["uv pip install -e . (installer)"]
-    A4 --> B["comfyui-installer install"]
+    A4 --> B["umeairt-comfyui-installer install"]
     B --> P1["Phase 1 (phase1.py)"]
     B --> P2["Phase 2 (phase2.py)"]
 
@@ -78,11 +78,11 @@ graph TD
 
 | Command | Purpose |
 |---------|---------|
-| `comfyui-installer install` | Full installation (Phase 1 + Phase 2) |
-| `comfyui-installer update` | Update ComfyUI, nodes, and dependencies |
-| `comfyui-installer download-models` | Interactive model pack downloads |
-| `comfyui-installer info` | Display system info (GPU, Python, tools) |
-| `comfyui-installer version` | Show installer version |
+| `umeairt-comfyui-installer install` | Full installation (Phase 1 + Phase 2) |
+| `umeairt-comfyui-installer update` | Update ComfyUI, nodes, and dependencies |
+| `umeairt-comfyui-installer download-models` | Interactive model pack downloads |
+| `umeairt-comfyui-installer info` | Display system info (GPU, Python, tools) |
+| `umeairt-comfyui-installer version` | Show installer version |
 
 ## Generated Launcher Scripts
 

@@ -116,7 +116,7 @@ fi
 # ============================================================================
 # Step 4: Install the installer package into the venv
 # ============================================================================
-echo "[INFO] Installing comfyui-installer..."
+echo "[INFO] Installing umeairt-comfyui-installer..."
 uv pip install -e "$SCRIPT_DIR" --python "$VENV_PY" --quiet
 
 # ============================================================================

@@ -10,7 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - **Universal Hardware Support** — Auto-detects and configs PyTorch for NVIDIA (CUDA 13.0/12.8), AMD (ROCm 7.1/DirectML), and Apple Silicon (MPS).
-- **Full Python CLI** (`comfyui-installer`) replacing all PowerShell scripts — commands: `install`, `update`, `download-models`, `info`, `version`.
+- **Full Python CLI** (`umeairt-comfyui-installer`) replacing all PowerShell scripts — commands: `install`, `update`, `download-models`, `info`, `version`.
 - **Cross-platform support** — Windows (.bat), Linux/macOS (.sh) launchers and installer scripts.
 - **Pydantic configuration** — typed, validated config models for `dependencies.json` and user settings.
 - **Verbose mode** (`-v` / `--verbose`) — hides pip/git subprocess output by default, shows with flag.
@@ -21,7 +21,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Unified model downloader** — catalog-driven system replacing 8 separate PowerShell scripts.
 - **Launcher generation** — 4 scripts generated at install time: Start (Performance), Start (LowVRAM), Download Models, Update.
 - **Bootstrap version detection** — `Install.bat`/`Install.sh` compare installed vs repo version and prompt before updating.
-- **GPU info command** — `comfyui-installer info` displays GPU, VRAM, Python, and tool versions.
+- **GPU info command** — `umeairt-comfyui-installer info` displays GPU, VRAM, Python, and tool versions.
 - **Agentic documentation** — `AGENTS.md`, `.cursorrules`, `docs/codemaps/` with mermaid diagrams.
 - **203 automated tests** — unit and integration tests with pytest, 56% coverage.
 - **CI/CD pipeline** — GitHub Actions with Python 3.11-3.13 × Ubuntu/Windows matrix, Ruff linting, Bandit security audit, pip-audit CVE scan, and coverage threshold.

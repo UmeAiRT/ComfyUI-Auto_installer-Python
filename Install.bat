@@ -141,10 +141,10 @@ if not exist "%VENV_PY%" (
 :: ============================================================================
 :: Step 4: Install the installer package into the venv
 :: ============================================================================
-echo [INFO] Installing comfyui-installer...
+echo [INFO] Installing umeairt-comfyui-installer...
 "%UV_EXE%" pip install -e "%ScriptDir%" --python "%VENV_PY%" --quiet
 if !errorlevel! neq 0 (
-    echo [ERROR] Failed to install comfyui-installer.
+    echo [ERROR] Failed to install umeairt-comfyui-installer.
     pause
     exit /b 1
 )

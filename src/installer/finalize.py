@@ -140,18 +140,18 @@ def create_launchers(
     if is_windows:
         tools: list[tuple[str, str, str]] = [
             ("UmeAiRT-Download-Models", "Model Downloader",
-             'comfyui-installer download-models --path "%InstallPath%"'),
+             'umeairt-comfyui-installer download-models --path "%InstallPath%"'),
             ("UmeAiRT-Update", "Updater",
-             'comfyui-installer update --path "%InstallPath%"'),
+             'umeairt-comfyui-installer update --path "%InstallPath%"'),
         ]
         for tool_name, tool_label, tool_cmd in tools:
             _write_bat_tool(install_path, tool_name, tool_label, tool_cmd, log)
     else:
         tools = [
             ("UmeAiRT-Download-Models", "Model Downloader",
-             'comfyui-installer download-models --path "$SCRIPT_DIR"'),
+             'umeairt-comfyui-installer download-models --path "$SCRIPT_DIR"'),
             ("UmeAiRT-Update", "Updater",
-             'comfyui-installer update --path "$SCRIPT_DIR"'),
+             'umeairt-comfyui-installer update --path "$SCRIPT_DIR"'),
         ]
         for tool_name, tool_label, tool_cmd in tools:
             _write_sh_tool(install_path, tool_name, tool_label, tool_cmd, log)
