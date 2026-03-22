@@ -52,8 +52,9 @@ class TestDownloadFileFallback:
 
     def test_auto_modelscope_fallback(self, tmp_path: Path) -> None:
         """UmeAiRT HF URLs automatically get MS fallback injected."""
+        from unittest.mock import MagicMock, patch
+
         from src.utils.download import download_file
-        from unittest.mock import patch, MagicMock
 
         dest = tmp_path / "test.whl"
         hf_url = "https://huggingface.co/UmeAiRT/ComfyUI-Auto_installer/resolve/main/whl/nunchaku.whl"
@@ -67,12 +68,11 @@ class TestDownloadFileFallback:
         # Always fail to trigger all fallbacks
         mock_httpx.side_effect = OSError("Download failed")
 
+        import contextlib
         with patch("src.utils.download._find_aria2c", return_value=None), \
-             patch("src.utils.download._download_with_httpx", mock_httpx):
-            try:
-                download_file(hf_url, dest, mirrors=mirrors)
-            except RuntimeError:
-                pass
+             patch("src.utils.download._download_with_httpx", mock_httpx), \
+             contextlib.suppress(RuntimeError):
+            download_file(hf_url, dest, mirrors=mirrors)
 
         # httpx should have been called twice: once with HF, once with MS
         assert mock_httpx.call_count == 2

@@ -147,8 +147,9 @@ class TestWheelConfigChecksums:
 
     def test_resolve_cuda_tag_exact_match(self) -> None:
         """resolve() uses {platform}_{cuda}_{cpython} composite tag when available."""
-        from src.config import WheelConfig
         from unittest.mock import patch
+
+        from src.config import WheelConfig
         whl = WheelConfig(
             name="pkg",
             versions={"linux_cu130_cp313": "https://example.com/pkg-linux-cu130.whl"},

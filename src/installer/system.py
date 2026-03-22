@@ -169,7 +169,14 @@ def install_git(
         git_installer.unlink(missing_ok=True)
 
 
-def ensure_aria2(install_path: Path, log: InstallerLogger, *, aria2_url: str = "", aria2_sha256: str = "", mirrors: dict[str, str] | None = None) -> bool:
+def ensure_aria2(
+    install_path: Path,
+    log: InstallerLogger,
+    *,
+    aria2_url: str = "",
+    aria2_sha256: str = "",
+    mirrors: dict[str, str] | None = None,
+) -> bool:
     """Ensure the aria2 download accelerator is available.
 
     Uses a 3-tier search strategy:
