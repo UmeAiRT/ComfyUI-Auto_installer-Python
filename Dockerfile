@@ -1,8 +1,8 @@
 # syntax=docker/dockerfile:1.4
-# ── Base image: CUDA 13.0 runtime for RTX 50X0 / 40X0 / 30X0 support ──
-FROM nvidia/cuda:13.0.2-runtime-ubuntu22.04
+# ── Base image: CUDA 13.0 + cuDNN runtime for RTX 50X0 / 40X0 / 30X0 support ──
+FROM nvidia/cuda:13.0.2-cudnn-runtime-ubuntu24.04
 
-# Install system dependencies (Python 3.12, git, aria2, build tools)
+# Install system dependencies (Python 3.12 is native to Ubuntu 24.04)
 RUN apt-get update && apt-get install -y --no-install-recommends \
     python3.12 \
     python3.12-venv \
