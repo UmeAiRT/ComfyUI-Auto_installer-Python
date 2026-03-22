@@ -24,7 +24,7 @@ import sys
 from typing import TYPE_CHECKING
 
 from src.utils.commands import CommandError
-from src.utils.gpu import detect_nvidia_gpu
+from src.utils.gpu import detect_nvidia_gpu, get_compute_capability
 from src.utils.packaging import uv_install
 
 if TYPE_CHECKING:
@@ -257,6 +257,105 @@ def _install_package(
 
 
 # ---------------------------------------------------------------------------
+# SageAttention wheel installer (compute-capability aware)
+# ---------------------------------------------------------------------------
+def install_sageattention(
+    python_exe: Path,
+    deps: DependenciesConfig,
+    log: InstallerLogger,
+) -> None:
+    """Install the correct SageAttention wheel based on GPU compute capability.
+
+    Checks ``deps.pip_packages.sageattention_wheels`` for a wheel whose
+    compute-capability range matches the detected GPU.  Falls back to
+    PyPI ``sageattention`` with ``--no-build-isolation`` if no pre-built
+    wheel is available.
+
+    Args:
+        python_exe: Path to the venv Python executable.
+        deps: Parsed ``dependencies.json``.
+        log: Installer logger for user-facing messages.
+    """
+    from src.utils.download import download_file
+
+    # Check if already installed
+    installed = _check_package_installed(python_exe, "sageattention")
+    if installed is None:
+        installed = _check_package_installed(python_exe, "sageattention3")
+    if installed:
+        log.sub(f"SageAttention already installed: v{installed}", style="success")
+        return
+
+    # Detect compute capability
+    cc = get_compute_capability()
+    if cc is None:
+        log.info("Could not detect GPU compute capability — skipping SageAttention.")
+        return
+
+    log.sub(f"GPU compute capability: {cc[0]}.{cc[1]}")
+
+    # Find matching wheel from config
+    sa_wheels = deps.pip_packages.sageattention_wheels
+    py_version = (sys.version_info.major, sys.version_info.minor)
+    cuda_tag = "cu130"  # Default CUDA tag for our builds
+
+    # Try CUDA version from torch for more accurate tag
+    cuda_ver = _get_cuda_version_from_torch(python_exe)
+    if cuda_ver:
+        parts = cuda_ver.split(".")
+        if len(parts) >= 2:
+            from src.utils.gpu import cuda_tag_from_version
+            tag = cuda_tag_from_version((int(parts[0]), int(parts[1])))
+            if tag:
+                cuda_tag = tag
+
+    for sa_whl in sa_wheels:
+        if not sa_whl.matches_gpu(cc):
+            continue
+
+        resolved = sa_whl.resolve(py_version, cuda_tag)
+        if resolved is None:
+            log.info(f"{sa_whl.name}: no wheel for Python {py_version[0]}.{py_version[1]}, skipping.")
+            continue
+
+        whl_name, whl_url, whl_checksum = resolved
+        wheel_path = python_exe.parent.parent / f"{whl_name}.whl"
+        log.sub(f"Installing {sa_whl.name} from pre-built wheel...")
+
+        try:
+            download_file(whl_url, wheel_path, checksum=whl_checksum, mirrors=deps.mirrors)
+            uv_install(python_exe, [str(wheel_path)], ignore_errors=True)
+            installed = _check_package_installed(python_exe, sa_whl.name.replace("-", "_"))
+            if installed:
+                log.sub(f"{sa_whl.name} installed: v{installed}", style="success")
+            else:
+                log.warning(f"{sa_whl.name} wheel installed but not importable.", level=2)
+        except Exception as e:
+            log.warning(f"Failed to install {sa_whl.name} wheel: {e}", level=2)
+        finally:
+            wheel_path.unlink(missing_ok=True)
+        return
+
+    # Fallback: compile from PyPI (slow, needs build tools)
+    log.sub("No pre-built SageAttention wheel available — trying PyPI (may need to compile)...")
+    try:
+        uv_install(
+            python_exe,
+            ["sageattention"],
+            no_build_isolation=True,
+            ignore_errors=True,
+            timeout=600,
+        )
+        installed = _check_package_installed(python_exe, "sageattention")
+        if installed:
+            log.sub(f"sageattention installed from PyPI: v{installed}", style="success")
+        else:
+            log.warning("sageattention could not be installed from PyPI.", level=2)
+    except CommandError:
+        log.warning("sageattention compilation from PyPI failed.", level=2)
+
+
+# ---------------------------------------------------------------------------
 # Public entry point
 # ---------------------------------------------------------------------------
 def install_optimizations(
@@ -314,8 +413,11 @@ def install_optimizations(
 
     torch_ver = _get_torch_version(python_exe)
 
-    # Install each compatible package
+    # Install each compatible package (skip sageattention — handled separately)
     for pkg in packages:
+        if pkg.name == "sageattention":
+            continue  # Handled by install_sageattention()
+
         if not _check_requirements(
             pkg.requires,
             has_nvidia=has_nvidia,
@@ -325,3 +427,6 @@ def install_optimizations(
             continue
 
         _install_package(pkg, python_exe, platform, torch_ver, log)
+
+    # SageAttention: uses dedicated wheel-based installer
+    install_sageattention(python_exe, deps, log)

@@ -38,6 +38,36 @@ class GpuInfo:
     name: str
     vram_gib: int
     cuda_version: tuple[int, int] | None = None
+    compute_capability: tuple[int, int] | None = None
+
+
+def get_compute_capability() -> tuple[int, int] | None:
+    """Query the compute capability of the first NVIDIA GPU.
+
+    Uses ``nvidia-smi`` to retrieve the GPU's SM architecture
+    (e.g. ``8.9`` for Ada Lovelace, ``10.0`` for Blackwell).
+
+    Returns:
+        ``(major, minor)`` tuple (e.g. ``(8, 9)``), or ``None``.
+    """
+    try:
+        result = subprocess.run(  # returncode checked below
+            ["nvidia-smi", "--query-gpu=compute_cap", "--format=csv,noheader,nounits"],
+            capture_output=True,
+            text=True,
+            timeout=10,
+        )
+        if result.returncode != 0 or not result.stdout.strip():
+            return None
+
+        cap_str = result.stdout.strip().split("\n")[0].strip()
+        parts = cap_str.split(".")
+        if len(parts) == 2:
+            return (int(parts[0]), int(parts[1]))
+        return None
+
+    except (FileNotFoundError, subprocess.TimeoutExpired, ValueError, OSError):
+        return None
 
 
 def detect_cuda_version() -> tuple[int, int] | None:
@@ -171,8 +201,9 @@ def get_gpu_vram_info() -> GpuInfo | None:
         memory_mib = int(parts[1].strip())
         memory_gib = round(memory_mib / 1024)
         cuda = detect_cuda_version()
+        cc = get_compute_capability()
 
-        return GpuInfo(name=name, vram_gib=memory_gib, cuda_version=cuda)
+        return GpuInfo(name=name, vram_gib=memory_gib, cuda_version=cuda, compute_capability=cc)
 
     except (FileNotFoundError, subprocess.TimeoutExpired, ValueError, OSError):
         return None

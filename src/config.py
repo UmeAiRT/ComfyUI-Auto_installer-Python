@@ -112,6 +112,31 @@ class WheelConfig(BaseModel):
         return None
 
 
+class SageAttentionWheelConfig(WheelConfig):
+    """A SageAttention wheel with GPU compute capability range.
+
+    Extends ``WheelConfig`` with ``min_compute_capability`` and
+    ``max_compute_capability`` to select between SageAttention 2
+    (sm_80–sm_90) and SageAttention 3 Blackwell (sm_100+).
+    """
+
+    min_compute_capability: list[int] = Field(default_factory=lambda: [8, 0])
+    max_compute_capability: list[int] = Field(default_factory=lambda: [99, 0])
+
+    def matches_gpu(self, cc: tuple[int, int]) -> bool:
+        """Check if this wheel is compatible with the GPU compute capability.
+
+        Args:
+            cc: Compute capability as ``(major, minor)``.
+
+        Returns:
+            ``True`` if the GPU matches the range.
+        """
+        min_cc = tuple(self.min_compute_capability)
+        max_cc = tuple(self.max_compute_capability)
+        return min_cc <= cc <= max_cc
+
+
 class PipPackages(BaseModel):
     """All pip package configurations."""
 
@@ -130,6 +155,7 @@ class PipPackages(BaseModel):
     )
     comfyui_requirements: str = "requirements.txt"
     wheels: list[WheelConfig] = Field(default_factory=list)
+    sageattention_wheels: list[SageAttentionWheelConfig] = Field(default_factory=list)
     standard: list[str] = Field(default_factory=list)
     git_repos: list[str] = Field(default_factory=list)
 

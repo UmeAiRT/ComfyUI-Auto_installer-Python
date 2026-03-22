@@ -8,7 +8,7 @@ FROM nvidia/cuda:13.0.2-cudnn-runtime-ubuntu24.04
 #   cloud              → ComfyUI + JupyterLab (for RunPod / cloud)
 ARG VARIANT=standard
 
-# Install system dependencies (Python 3.12 is native to Ubuntu 24.04)
+# Install system dependencies (Python 3.12 is native to Ubuntu 24.04, kept for OS tools)
 RUN apt-get update && apt-get install -y --no-install-recommends \
     python3.12 \
     python3.12-venv \
@@ -33,6 +33,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # Copy (not symlink) because /root/.local is inaccessible to non-root users
 RUN curl -LsSf https://astral.sh/uv/install.sh | sh \
     && cp /root/.local/bin/uv /usr/local/bin/uv
+
+# Install Python 3.13 via uv for the ComfyUI venv (supports SageAttention 3 Blackwell)
+# System Python 3.12 stays untouched for Ubuntu's own tools.
+RUN uv python install 3.13
 
 # Configure workspace
 WORKDIR /app

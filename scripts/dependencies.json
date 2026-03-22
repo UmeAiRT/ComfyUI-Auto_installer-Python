@@ -91,6 +91,28 @@
         }
       }
     ],
+    "sageattention_wheels": [
+      {
+        "name": "sageattention",
+        "min_compute_capability": [8, 0],
+        "max_compute_capability": [9, 9],
+        "versions": {
+          "linux_cu130_cp311": "https://huggingface.co/UmeAiRT/ComfyUI-Auto_installer/resolve/main/whl/sageattention-2.1.1-cp311-cp311-linux_x86_64.whl",
+          "linux_cu130_cp312": "https://huggingface.co/UmeAiRT/ComfyUI-Auto_installer/resolve/main/whl/sageattention-2.1.1-cp312-cp312-linux_x86_64.whl",
+          "linux_cu130_cp313": "https://huggingface.co/UmeAiRT/ComfyUI-Auto_installer/resolve/main/whl/sageattention-2.1.1-cp313-cp313-linux_x86_64.whl"
+        },
+        "checksums": {}
+      },
+      {
+        "name": "sageattention3",
+        "min_compute_capability": [10, 0],
+        "max_compute_capability": [99, 0],
+        "versions": {
+          "linux_cu130_cp313": "https://huggingface.co/UmeAiRT/ComfyUI-Auto_installer/resolve/main/whl/sageattention3-1.0.0-cp313-cp313-linux_x86_64.whl"
+        },
+        "checksums": {}
+      }
+    ],
     "standard": [
       "facexlib",
       "cython",

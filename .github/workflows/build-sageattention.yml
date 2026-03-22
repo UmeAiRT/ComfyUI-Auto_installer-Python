@@ -1,0 +1,181 @@
+# Build SageAttention wheels for multiple Python versions and GPU architectures.
+# Compiled wheels are uploaded to HuggingFace Assets for the installer to download.
+#
+# Trigger: manual dispatch or tag push matching "sageattention-v*"
+name: Build SageAttention Wheels
+
+on:
+  workflow_dispatch:
+    inputs:
+      sageattention_ref:
+        description: 'SageAttention git ref (branch/tag/commit)'
+        default: 'main'
+        required: false
+  push:
+    tags:
+      - 'sageattention-v*'
+
+env:
+  # HuggingFace repo where wheels are uploaded
+  HF_REPO: UmeAiRT/ComfyUI-Auto_installer
+  HF_WHEEL_DIR: whl
+  # PyTorch version must match the one in dependencies.json
+  TORCH_VERSION: "2.10.0"
+  TORCH_INDEX: "https://download.pytorch.org/whl/cu130"
+
+jobs:
+  build-sa2:
+    name: "SA2 — Python ${{ matrix.python }} (sm_80→sm_90)"
+    runs-on: ubuntu-latest
+    container:
+      image: nvidia/cuda:13.0.2-cudnn-devel-ubuntu24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ["3.11", "3.12", "3.13"]
+    steps:
+      - name: Install system dependencies
+        run: |
+          apt-get update && apt-get install -y --no-install-recommends \
+            git curl build-essential ninja-build ca-certificates
+
+      - name: Install uv
+        run: |
+          curl -LsSf https://astral.sh/uv/install.sh | sh
+          cp /root/.local/bin/uv /usr/local/bin/uv
+
+      - name: Create build venv with Python ${{ matrix.python }}
+        run: |
+          uv python install ${{ matrix.python }}
+          uv venv /build-venv --python ${{ matrix.python }}
+
+      - name: Install PyTorch
+        run: |
+          /build-venv/bin/pip install \
+            torch==${{ env.TORCH_VERSION }}+cu130 \
+            --index-url ${{ env.TORCH_INDEX }}
+
+      - name: Install build tools
+        run: |
+          /build-venv/bin/pip install setuptools wheel packaging
+
+      - name: Clone SageAttention
+        run: |
+          git clone https://github.com/thu-ml/SageAttention.git /sageattention
+          cd /sageattention
+          git checkout ${{ github.event.inputs.sageattention_ref || 'main' }}
+
+      - name: Build SageAttention 2 wheel
+        working-directory: /sageattention
+        env:
+          TORCH_CUDA_ARCH_LIST: "8.0;8.6;8.9;9.0"
+          MAX_JOBS: "2"
+          PATH: "/build-venv/bin:/usr/local/cuda/bin:$PATH"
+        run: |
+          /build-venv/bin/pip wheel . --no-deps --no-build-isolation -w /wheels
+
+      - name: List built wheels
+        run: ls -lah /wheels/
+
+      - name: Upload wheel to HuggingFace
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+        run: |
+          /build-venv/bin/pip install huggingface_hub
+          /build-venv/bin/python -c "
+          from huggingface_hub import HfApi
+          import glob
+          api = HfApi()
+          for whl in glob.glob('/wheels/*.whl'):
+              print(f'Uploading {whl}...')
+              api.upload_file(
+                  path_or_fileobj=whl,
+                  path_in_repo='${{ env.HF_WHEEL_DIR }}/' + whl.split('/')[-1],
+                  repo_id='${{ env.HF_REPO }}',
+                  repo_type='model',
+              )
+              print('Done.')
+          "
+
+      - name: Upload wheel as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: sageattention2-cp${{ matrix.python }}-wheel
+          path: /wheels/*.whl
+          retention-days: 30
+
+  build-sa3:
+    name: "SA3 Blackwell — Python 3.13 (sm_100)"
+    runs-on: ubuntu-latest
+    container:
+      image: nvidia/cuda:13.0.2-cudnn-devel-ubuntu24.04
+    steps:
+      - name: Install system dependencies
+        run: |
+          apt-get update && apt-get install -y --no-install-recommends \
+            git curl build-essential ninja-build ca-certificates
+
+      - name: Install uv
+        run: |
+          curl -LsSf https://astral.sh/uv/install.sh | sh
+          cp /root/.local/bin/uv /usr/local/bin/uv
+
+      - name: Create build venv with Python 3.13
+        run: |
+          uv python install 3.13
+          uv venv /build-venv --python 3.13
+
+      - name: Install PyTorch
+        run: |
+          /build-venv/bin/pip install \
+            torch==${{ env.TORCH_VERSION }}+cu130 \
+            --index-url ${{ env.TORCH_INDEX }}
+
+      - name: Install build tools
+        run: |
+          /build-venv/bin/pip install setuptools wheel packaging
+
+      - name: Clone SageAttention
+        run: |
+          git clone https://github.com/thu-ml/SageAttention.git /sageattention
+          cd /sageattention
+          git checkout ${{ github.event.inputs.sageattention_ref || 'main' }}
+
+      - name: Build SageAttention 3 Blackwell wheel
+        working-directory: /sageattention/sageattention3_blackwell
+        env:
+          TORCH_CUDA_ARCH_LIST: "10.0"
+          MAX_JOBS: "2"
+          PATH: "/build-venv/bin:/usr/local/cuda/bin:$PATH"
+        run: |
+          /build-venv/bin/pip wheel . --no-deps --no-build-isolation -w /wheels
+
+      - name: List built wheels
+        run: ls -lah /wheels/
+
+      - name: Upload wheel to HuggingFace
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+        run: |
+          /build-venv/bin/pip install huggingface_hub
+          /build-venv/bin/python -c "
+          from huggingface_hub import HfApi
+          import glob
+          api = HfApi()
+          for whl in glob.glob('/wheels/*.whl'):
+              print(f'Uploading {whl}...')
+              api.upload_file(
+                  path_or_fileobj=whl,
+                  path_in_repo='${{ env.HF_WHEEL_DIR }}/' + whl.split('/')[-1],
+                  repo_id='${{ env.HF_REPO }}',
+                  repo_type='model',
+              )
+              print('Done.')
+          "
+
+      - name: Upload wheel as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: sageattention3-blackwell-wheel
+          path: /wheels/*.whl
+          retention-days: 30

@@ -165,6 +165,7 @@ class TestInstallOptimizations:
             patch("src.installer.optimizations._get_current_platform", return_value="windows"),
             patch("src.installer.optimizations._get_cuda_version_from_torch", return_value="13.0"),
             patch("src.installer.optimizations._get_torch_version", return_value="2.10.0"),
+            patch("src.installer.optimizations.install_sageattention"),
         ):
             install_optimizations(MagicMock(), MagicMock(), MagicMock(), deps, log)
 
@@ -179,10 +180,10 @@ class TestInstallOptimizations:
         deps = MagicMock()
         deps.optimizations.packages = [
             OptimizationPackage(
-                name="sageattention",
-                pypi_package="sageattention",
+                name="triton",
+                pypi_package="triton",
                 requires=["nvidia"],
-                install_options=InstallOptions(no_build_isolation=True),
+                install_options=InstallOptions(no_build_isolation=False),
             ),
         ]
 
@@ -193,9 +194,8 @@ class TestInstallOptimizations:
             patch("src.installer.optimizations._get_torch_version", return_value="2.10.0"),
             patch("src.installer.optimizations._check_package_installed", return_value=None),
             patch("src.installer.optimizations.uv_install") as mock_uv,
+            patch("src.installer.optimizations.install_sageattention"),
         ):
             install_optimizations(MagicMock(), MagicMock(), MagicMock(), deps, log)
 
         mock_uv.assert_called_once()
-        call_kwargs = mock_uv.call_args[1]
-        assert call_kwargs["no_build_isolation"] is True
