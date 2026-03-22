@@ -77,20 +77,20 @@ umeairt-comfyui-installer install --path /path/to/install -v
 Requires [Docker](https://www.docker.com/products/docker-desktop/) and an NVIDIA GPU.
 
 ```bash
-docker run --gpus all --name comfyui -p 8188:8188 -v comfyui:/data ghcr.io/umeairt/comfyui:latest
+docker run --gpus all -p 8188:8188 -v comfyui-data:/data -e NODE_TIER=full ghcr.io/umeairt/comfyui:latest
 ```
 
 Open **http://localhost:8188** — done! ✅
 
-All your data (models, nodes, outputs) is stored in the `comfyui` volume and persists between restarts. To use a local folder instead: replace `comfyui:/data` with `./comfyui_data:/data`.
+All your data (models, nodes, outputs) is stored in the `comfyui-data` volume and persists between restarts. To use a local folder instead: replace `comfyui-data:/data` with `./comfyui_data:/data`.
 
 **Cloud variant** (with JupyterLab for RunPod / remote):
 
 ```bash
-docker run --gpus all --name comfyui -p 8188:8188 -p 8888:8888 -v comfyui:/data -e JUPYTER_ENABLE=true ghcr.io/umeairt/comfyui:latest-cloud
+docker run --gpus all --name comfyui -p 8188:8188 -p 8888:8888 -v comfyui-data:/data -e JUPYTER_ENABLE=true -e NODE_TIER=umeairt ghcr.io/umeairt/comfyui:latest-cloud
 ```
 
-> See [Docker docs](docs/docker.md) for more options (node bundles, Jupyter token, local builds).
+> **Tip:** Use `-e NODE_TIER=minimal`, `umeairt`, or `full` (default) to control which custom nodes are installed on boot. See [Docker docs](docs/docker.md) for more options like Jupyter token and local builds.
 
 ## 📂 Post-Installation
 
