@@ -97,20 +97,28 @@
         "min_compute_capability": [8, 0],
         "max_compute_capability": [9, 9],
         "versions": {
-          "linux_cu130_cp311": "https://huggingface.co/UmeAiRT/ComfyUI-Auto_installer/resolve/main/whl/sageattention-2.1.1-cp311-cp311-linux_x86_64.whl",
-          "linux_cu130_cp312": "https://huggingface.co/UmeAiRT/ComfyUI-Auto_installer/resolve/main/whl/sageattention-2.1.1-cp312-cp312-linux_x86_64.whl",
-          "linux_cu130_cp313": "https://huggingface.co/UmeAiRT/ComfyUI-Auto_installer/resolve/main/whl/sageattention-2.1.1-cp313-cp313-linux_x86_64.whl"
+          "linux_cp311": "https://huggingface.co/UmeAiRT/ComfyUI-Auto-Installer-Assets/resolve/main/whl/sageattention-2.2.0-cp311-cp311-linux_x86_64.whl",
+          "linux_cp312": "https://huggingface.co/UmeAiRT/ComfyUI-Auto-Installer-Assets/resolve/main/whl/sageattention-2.2.0-cp312-cp312-linux_x86_64.whl",
+          "linux_cp313": "https://huggingface.co/UmeAiRT/ComfyUI-Auto-Installer-Assets/resolve/main/whl/sageattention-2.2.0-cp313-cp313-linux_x86_64.whl",
+          "cp312": "https://huggingface.co/UmeAiRT/ComfyUI-Auto-Installer-Assets/resolve/main/whl/sageattention-2.1.1-cp312-cp312-win_amd64.whl"
         },
-        "checksums": {}
+        "checksums": {
+          "linux_cp311": "9e363cab2b9fd6d751392be1e773183a970022dc0b9dd42e862ca917df4cc523",
+          "linux_cp312": "6725eb81a3bc13ce9736d19993712390d347f9ec56d885e858ec4decb623997a",
+          "linux_cp313": "880884c38d1d23b78c26012d92e4a75aea81a66ee51c6ef8f228c7640c5c7e21",
+          "cp312": "002e80afff9c15e8e49075b5dea8ae57584ff876463576c5b77880c86170d6fd"
+        }
       },
       {
-        "name": "sageattention3",
+        "name": "sageattn3",
         "min_compute_capability": [10, 0],
         "max_compute_capability": [99, 0],
         "versions": {
-          "linux_cu130_cp313": "https://huggingface.co/UmeAiRT/ComfyUI-Auto_installer/resolve/main/whl/sageattention3-1.0.0-cp313-cp313-linux_x86_64.whl"
+          "linux_cp313": "https://huggingface.co/UmeAiRT/ComfyUI-Auto-Installer-Assets/resolve/main/whl/sageattn3-1.0.0-cp313-cp313-linux_x86_64.whl"
         },
-        "checksums": {}
+        "checksums": {
+          "linux_cp313": "22faaa817e74dc2c1accc6db2261f8063ae5d3a4a69c0582a2a059f83d4ae870"
+        }
       }
     ],
     "standard": [
