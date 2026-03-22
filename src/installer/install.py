@@ -2,7 +2,7 @@
 Unified installation orchestrator.
 
 Single entry point for the complete ComfyUI installation.  All logic
-lives in domain modules; this file only coordinates the 12-step flow.
+lives in domain modules; this file only coordinates the 13-step flow.
 
 Steps:
 
@@ -21,6 +21,7 @@ Step   Label                             Module
 10     Performance Optimizations          :mod:`.optimizations`
 11     Finalization                       :mod:`.finalize`
 12     Model Downloads                   :mod:`.finalize`
+13     Installation Complete             (summary + success banner)
 =====  ================================  ===================================
 
 Error handling convention

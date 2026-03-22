@@ -7,8 +7,8 @@ packages = ["src"]
 include = ["src/installer/templates/*.template"]
 
 [project]
-name = "comfyui-auto-installer"
-version = "5.0.0-alpha.3"
+name = "umeairt-comfyui-installer"
+version = "5.0.0a3"
 description = "Cross-platform automated installer for ComfyUI"
 readme = "README.md"
 license = "MIT"
@@ -18,7 +18,7 @@ authors = [
 ]
 keywords = ["comfyui", "installer", "ai", "stable-diffusion"]
 classifiers = [
-    "Development Status :: 3 - Alpha",
+    "Development Status :: 4 - Beta",
     "Intended Audience :: End Users/Desktop",
     "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",

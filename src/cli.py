@@ -161,7 +161,7 @@ def download_models(
     ),
     verbose: bool = typer.Option(
         False,
-        "--verbose", "-V",
+        "--verbose", "-v",
         help="Show detailed output.",
     ),
 ) -> None:

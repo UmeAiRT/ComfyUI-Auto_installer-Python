@@ -1,6 +1,6 @@
 """Mocked end-to-end test for the install orchestrator.
 
-Ensures the 12-step flow executes completely without errors and
+Ensures the 13-step flow executes completely without errors and
 that TOTAL_STEPS stays synchronized with actual log.step() calls.
 """
 
@@ -19,7 +19,7 @@ class TestRunInstallIntegration:
     """Mocked end-to-end test for run_install()."""
 
     def test_full_install_completes_all_steps(self, tmp_path: Path) -> None:
-        """run_install() should execute all 12 steps without crashing.
+        """run_install() should execute all 13 steps without crashing.
 
         Mocks all external I/O (subprocess, git, downloads, etc.)
         and verifies the logger's step() is called TOTAL_STEPS times.
@@ -49,6 +49,9 @@ class TestRunInstallIntegration:
         (source_dir / "dependencies.json").write_text(json.dumps(deps_data), encoding="utf-8")
 
         # Track step calls via a wrapper
+        # Note: we track the underlying log() at level=0 because
+        # log.success("Installation Complete!", level=0) also increments
+        # the step counter — it's the 13th level-0 call.
         step_calls: list[str] = []
 
         def mock_setup_logger(**kwargs):
@@ -58,13 +61,14 @@ class TestRunInstallIntegration:
                 total_steps=TOTAL_STEPS,
                 verbose=False,
             )
-            original_step = log.step
+            original_log = log.log
 
-            def tracking_step(title, *args, **kw):
-                step_calls.append(title)
-                return original_step(title, *args, **kw)
+            def tracking_log(message, *, level=1, style=""):
+                if level == 0:
+                    step_calls.append(message)
+                return original_log(message, level=level, style=style)
 
-            log.step = tracking_step
+            log.log = tracking_log
             return log
 
         mock_platform = MagicMock()
@@ -104,6 +108,6 @@ class TestRunInstallIntegration:
         )
 
     def test_total_steps_constant_matches_code(self) -> None:
-        """TOTAL_STEPS should be 12."""
+        """TOTAL_STEPS should be 13."""
         from src.installer.install import TOTAL_STEPS
-        assert TOTAL_STEPS == 12
+        assert TOTAL_STEPS == 13

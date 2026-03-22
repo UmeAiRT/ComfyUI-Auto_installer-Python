@@ -157,11 +157,12 @@
 - [x] Docker build & smoke test (ubuntu-latest)
 - [x] GHCR auto-publish on version tags
 
-### 10.3 CI Release Automation
-> **TODO:** Automate GitHub Releases via a CI workflow triggered by git tags (e.g. `v5.0.0-alpha.2`). Steps: run tests, build changelog excerpt, create GitHub Release with assets.
-- [ ] `release.yml` workflow — triggered on `v*` tags
-- [ ] Extract changelog section for the tag
-- [ ] Create GitHub Release with release notes
+### ~~10.3 CI Release Automation~~ ✅
+> **Done:** `release.yml` workflow triggered on `v*` tags — runs tests, builds sdist/wheel, publishes to PyPI via Trusted Publishing (OIDC), and creates GitHub Release with changelog notes and dist artifacts.
+- [x] `release.yml` workflow — triggered on `v*` tags
+- [x] Extract changelog section for the tag
+- [x] Create GitHub Release with release notes
+- [x] PyPI publish via Trusted Publishing (OIDC)
 
 ### ~~10.5 SageAttention CI~~ ✅
 > **Done:** `build-sageattention.yml` workflow compiles SA2 (v2.2.0, `8.0+PTX`, Python 3.11/3.12/3.13) and SA3 (v1.0.0, sm_100 Blackwell). Wheels uploaded to HuggingFace Assets with automated manifest update. OOM resolved via single-arch + `MAX_JOBS=1`.
@@ -188,5 +189,4 @@
 
 ## Priority Order (Updated 2026-03-22)
 
-**One open item remains:**
-1. **10.3 CI Release Automation** — GitHub Release workflow triggered by git tags
+**All items completed.** ✅ The project is release-ready.

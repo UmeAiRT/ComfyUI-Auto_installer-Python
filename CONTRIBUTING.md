@@ -67,7 +67,7 @@ All external binaries and wheels are mirrored on our HuggingFace Assets repo wit
 
 ## Pull Request Guidelines
 
-1. Branch from `python-rewrite` (current development branch)
+1. Branch from `main`
 2. Write tests for new functionality
 3. Ensure `ruff check` passes and tests are green
 4. Use conventional commits: `feat:`, `fix:`, `docs:`, `refactor:`
