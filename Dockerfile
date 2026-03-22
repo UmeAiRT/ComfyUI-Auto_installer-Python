@@ -3,79 +3,18 @@
 # UmeAiRT ComfyUI Docker Image
 #
 # Variants (set via --build-arg VARIANT=...):
-#   standard      → ComfyUI with pre-installed PyTorch venv (default)
+#   standard      → ComfyUI with pre-installed PyTorch venv (~4 GB)
 #   cloud         → standard + JupyterLab
-#   lite          → Minimal image — installs PyTorch on first run (~1.5 GB)
+#   lite          → Minimal — installs PyTorch on first run (~1.5 GB)
 #   lite-cloud    → lite + JupyterLab
 # ──────────────────────────────────────────────────────────────────
-
-# ── Stage 1: BUILDER ─────────────────────────────────────────────
-FROM nvidia/cuda:13.0.2-runtime-ubuntu24.04 AS builder
-
-ARG VARIANT=standard
-
-# Install ALL dependencies (including build tools for compilation)
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    python3.12 \
-    python3.12-venv \
-    python3.12-dev \
-    python3-pip \
-    git \
-    build-essential \
-    aria2 \
-    curl \
-    libgl1 \
-    libglib2.0-0 \
-    libsm6 \
-    libxext6 \
-    libxrender-dev \
-    libxcb1 \
-    && ln -sf /usr/bin/python3.12 /usr/bin/python3 \
-    && ln -sf /usr/bin/python3 /usr/bin/python \
-    && rm -rf /var/lib/apt/lists/* \
-    && rm -f /usr/lib/python3.12/EXTERNALLY-MANAGED
-
-# Install uv
-RUN curl -LsSf https://astral.sh/uv/install.sh | sh \
-    && cp /root/.local/bin/uv /usr/local/bin/uv
-
-# Install Python 3.13 via uv
-RUN uv python install 3.13
-
-WORKDIR /app
-RUN chown -R 1000:1000 /app && mkdir -p /data && chown -R 1000:1000 /data
-COPY --chown=1000:1000 . /app
-
-# Install the installer CLI system-wide
-RUN uv pip install --system -e .
-
-# Cloud variants: install JupyterLab
-RUN if [ "$VARIANT" = "cloud" ] || [ "$VARIANT" = "lite-cloud" ]; then \
-      uv pip install --system jupyterlab; \
-    fi
-
-USER 1000
-
-# Pre-install ComfyUI + PyTorch venv (standard/cloud only)
-# Lite variants SKIP this — PyTorch is installed at first runtime via entrypoint.
-RUN if [ "$VARIANT" = "standard" ] || [ "$VARIANT" = "cloud" ]; then \
-      python -m src.cli install --path /app --type venv --yes --cuda cu130 --skip-nodes; \
-    else \
-      echo "Lite variant — skipping pre-install (will install at first run)."; \
-    fi
-
-# Clean caches
-USER 0
-RUN rm -rf /root/.cache/uv /root/.cache/pip /home/*/.cache/uv /home/*/.cache/pip /tmp/* \
-    && find /app -type d -name __pycache__ -exec rm -rf {} + 2>/dev/null || true \
-    && find /app -name "*.pyc" -delete 2>/dev/null || true
-
-# ── Stage 2: RUNTIME ─────────────────────────────────────────────
 FROM nvidia/cuda:13.0.2-runtime-ubuntu24.04
 
 ARG VARIANT=standard
 
-# Install ONLY runtime dependencies
+# Install system dependencies in a single layer
+# build-essential is only needed for standard/cloud (compilation during install)
+# lite variants skip it entirely since PyTorch is installed at runtime from wheels
 RUN apt-get update && apt-get install -y --no-install-recommends \
     python3.12 \
     python3.12-venv \
@@ -89,33 +28,58 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libxext6 \
     libxrender1 \
     libxcb1 \
+    && if [ "$VARIANT" = "standard" ] || [ "$VARIANT" = "cloud" ]; then \
+         apt-get install -y --no-install-recommends \
+           python3.12-dev \
+           build-essential; \
+       fi \
     && ln -sf /usr/bin/python3.12 /usr/bin/python3 \
     && ln -sf /usr/bin/python3 /usr/bin/python \
     && rm -rf /var/lib/apt/lists/* \
     && rm -f /usr/lib/python3.12/EXTERNALLY-MANAGED
 
-# Copy uv binary from builder
-COPY --from=builder /usr/local/bin/uv /usr/local/bin/uv
+# Install uv
+RUN curl -LsSf https://astral.sh/uv/install.sh | sh \
+    && cp /root/.local/bin/uv /usr/local/bin/uv \
+    && rm -rf /root/.local/bin
 
-# Copy uv-managed Python 3.13 from builder
-COPY --from=builder /root/.local/share/uv /root/.local/share/uv
+# Install Python 3.13 via uv (for SageAttention 3 Blackwell support)
+RUN uv python install 3.13
 
-# Copy system-wide Python packages (installer CLI, jupyterlab if cloud)
-COPY --from=builder /usr/local/lib/python3.12 /usr/local/lib/python3.12
-COPY --from=builder /usr/lib/python3/dist-packages /usr/lib/python3/dist-packages
-
-# Copy the app (with or without pre-installed venv depending on variant)
 WORKDIR /app
-COPY --from=builder --chown=1000:1000 /app /app
-COPY --from=builder --chown=1000:1000 /data /data
 
-# Store the variant name so the entrypoint knows if first-run install is needed
-RUN echo "$VARIANT" > /app/.docker_variant
+# Ensure /app and /data are owned by UID 1000
+RUN chown -R 1000:1000 /app && mkdir -p /data && chown -R 1000:1000 /data
 
 VOLUME /data
 
+# Copy the installer repository
+COPY --chown=1000:1000 . /app
+
+# Install the installer CLI system-wide
+RUN uv pip install --system -e .
+
+# Cloud variants: install JupyterLab
+RUN if [ "$VARIANT" = "cloud" ] || [ "$VARIANT" = "lite-cloud" ]; then \
+      uv pip install --system jupyterlab; \
+    fi
+
+USER 1000
+
+# Standard/cloud: pre-install ComfyUI + PyTorch venv during build
+# Lite variants: SKIP — the entrypoint handles first-run install
+RUN if [ "$VARIANT" = "standard" ] || [ "$VARIANT" = "cloud" ]; then \
+      python -m src.cli install --path /app --type venv --yes --cuda cu130 --skip-nodes; \
+    fi
+
+# Standard/cloud: remove build tools after compilation (same layer trick:
+# we can't do it in the same RUN as install because of USER switch,
+# so we accept the small overhead of build-essential in the final image)
+
 # Fix line endings and set executable
-RUN sed -i 's/\r$//' /app/entrypoint.sh && chmod +x /app/entrypoint.sh
+USER 0
+RUN sed -i 's/\r$//' /app/entrypoint.sh && chmod +x /app/entrypoint.sh \
+    && rm -rf /root/.cache/uv /root/.cache/pip /home/*/.cache/uv /home/*/.cache/pip /tmp/*
 
 USER 1000
 
