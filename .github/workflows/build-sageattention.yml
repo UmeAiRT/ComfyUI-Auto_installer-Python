@@ -3,6 +3,7 @@
 #
 # Strategy: SA2 uses "8.0+PTX" (native sm_80 + JIT for higher archs) to stay
 # within GitHub's 7 GB RAM limit. SA3 targets Blackwell sm_100 only.
+# Windows builds use the sdbds/SageAttention-for-windows fork (MSVC patches).
 # A final job updates tools_manifest.json with SHA-256 hashes.
 #
 # Trigger: manual dispatch or tag push matching "sageattention-v*"
@@ -114,6 +115,76 @@ jobs:
           retention-days: 30
 
   # ---------------------------------------------------------------------------
+  # SA2 Windows: sdbds fork with MSVC patches
+  # ---------------------------------------------------------------------------
+  build-sa2-windows:
+    name: "SA2 Win — Python ${{ matrix.python }} (sm_80+PTX)"
+    runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ["3.11", "3.12", "3.13"]
+    steps:
+      - name: Install CUDA Toolkit
+        id: cuda-toolkit
+        uses: Jimver/cuda-toolkit@v0.2.25
+        with:
+          cuda: '13.0.2'
+          method: 'network'
+
+      - name: Install uv
+        shell: pwsh
+        run: |
+          irm https://astral.sh/uv/install.ps1 | iex
+          echo "$env:USERPROFILE\.local\bin" >> $env:GITHUB_PATH
+
+      - name: Create build venv with Python ${{ matrix.python }}
+        run: |
+          uv python install ${{ matrix.python }}
+          uv venv C:\build-venv --python ${{ matrix.python }}
+
+      - name: Install PyTorch
+        run: |
+          uv pip install --python C:\build-venv\Scripts\python.exe ^
+            torch==${{ env.TORCH_VERSION }}+cu130 ^
+            --index-url ${{ env.TORCH_INDEX }}
+        shell: cmd
+
+      - name: Install build tools
+        run: uv pip install --python C:\build-venv\Scripts\python.exe pip setuptools wheel packaging
+
+      - name: Clone SageAttention (Windows fork)
+        run: git clone https://github.com/sdbds/SageAttention-for-windows.git C:\sageattention
+
+      - name: Build SageAttention 2 wheel
+        working-directory: C:\sageattention
+        shell: cmd
+        env:
+          TORCH_CUDA_ARCH_LIST: "8.0+PTX"
+          MAX_JOBS: "1"
+          CUDA_HOME: ${{ steps.cuda-toolkit.outputs.CUDA_PATH }}
+          CUDA_PATH: ${{ steps.cuda-toolkit.outputs.CUDA_PATH }}
+        run: C:\build-venv\Scripts\python.exe -m pip wheel . --no-deps --no-build-isolation -w C:\wheels
+
+      - name: List built wheels
+        run: Get-ChildItem C:\wheels
+
+      - name: Upload wheel to HuggingFace
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+        shell: cmd
+        run: |
+          uv pip install --python C:\build-venv\Scripts\python.exe huggingface_hub
+          C:\build-venv\Scripts\python.exe -c "from huggingface_hub import HfApi; import glob, os; api = HfApi(); [print(f'Uploading {os.path.basename(w)}...') or api.upload_file(path_or_fileobj=w, path_in_repo='${{ env.HF_WHEEL_DIR }}/' + os.path.basename(w), repo_id='${{ env.HF_REPO }}', repo_type='model') or print('Done.') for w in glob.glob('C:\\wheels\\*.whl')]"
+
+      - name: Upload wheel as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: sa2-win-cp${{ matrix.python }}-wheel
+          path: C:\wheels\*.whl
+          retention-days: 30
+
+  # ---------------------------------------------------------------------------
   # SA3 Blackwell: Python 3.13 only, sm_100
   # ---------------------------------------------------------------------------
   build-sa3:
@@ -207,8 +278,8 @@ jobs:
   # ---------------------------------------------------------------------------
   update-manifest:
     name: "Update tools_manifest.json"
-    needs: [build-sa2, build-sa3]
-    if: always() && (needs.build-sa2.result == 'success' || needs.build-sa3.result == 'success')
+    needs: [build-sa2, build-sa2-windows, build-sa3]
+    if: always() && (needs.build-sa2.result == 'success' || needs.build-sa2-windows.result == 'success' || needs.build-sa3.result == 'success')
     runs-on: ubuntu-latest
     steps:
       - name: Download all wheel artifacts
