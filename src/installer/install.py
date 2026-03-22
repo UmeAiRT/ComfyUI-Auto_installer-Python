@@ -155,11 +155,13 @@ def run_install(
         git_sha256 = source_deps.tools.git_windows.sha256
         aria2_url = source_deps.tools.aria2_windows.url
         aria2_sha256 = source_deps.tools.aria2_windows.sha256
+        mirrors = getattr(source_deps, "mirrors", {})
     else:
         git_url = ""
         git_sha256 = ""
         aria2_url = ""
         aria2_sha256 = ""
+        mirrors = None
 
     if not check_prerequisites(log):
         kwargs: dict[str, str] = {}
@@ -167,10 +169,12 @@ def run_install(
             kwargs["git_url"] = git_url
         if git_sha256:
             kwargs["git_sha256"] = git_sha256
+        if mirrors:
+            kwargs["mirrors"] = mirrors
         if not install_git(log, **kwargs):
             raise InstallerFatalError("Git is required but could not be installed.")
 
-    ensure_aria2(install_path, log, aria2_url=aria2_url, aria2_sha256=aria2_sha256)
+    ensure_aria2(install_path, log, aria2_url=aria2_url, aria2_sha256=aria2_sha256, mirrors=mirrors)
 
     # ── Step 3: Creating Python Environment ───────────────────────
     log.step("Creating Python Environment")

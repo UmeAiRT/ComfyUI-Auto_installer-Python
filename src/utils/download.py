@@ -168,6 +168,7 @@ def download_file(
     quiet: bool = True,
     aria2c_hint: Path | None = None,
     log: InstallerLogger | None = None,
+    mirrors: dict[str, str] | None = None,
 ) -> Path:
     """
     Download a file from one or more URLs to a destination path.
@@ -203,18 +204,17 @@ def download_file(
     if not _raw_urls:
         raise RuntimeError("download_file: no URL provided.")
 
-    # Auto-generate ModelScope fallback for UmeAiRT assets if not already provided
+    # Auto-generate fallbacks using provided mirrors
     urls: list[str] = []
     for u in _raw_urls:
         if u not in urls:
             urls.append(u)
-        if "huggingface.co/UmeAiRT/ComfyUI-Auto_installer/resolve/main/" in u:
-            ms_fallback = u.replace(
-                "huggingface.co/UmeAiRT/ComfyUI-Auto_installer/resolve/main/",
-                "www.modelscope.ai/datasets/UmeAiRT/ComfyUI-Auto-Installer-Assets/resolve/master/"
-            )
-            if ms_fallback not in _raw_urls and ms_fallback not in urls:
-                urls.append(ms_fallback)
+        if mirrors:
+            for source, mirror in mirrors.items():
+                if source in u:
+                    fallback = u.replace(source, mirror)
+                    if fallback not in _raw_urls and fallback not in urls:
+                        urls.append(fallback)
 
     # Skip if already exists (and no checksum to verify or checksum matches)
     aria2_control = dest.with_suffix(dest.suffix + ".aria2")

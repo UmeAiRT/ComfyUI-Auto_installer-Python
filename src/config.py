@@ -245,6 +245,7 @@ class DependenciesConfig(BaseModel):
     pip_packages: PipPackages = Field(default_factory=PipPackages)
     files: FilesConfig = Field(default_factory=FilesConfig)
     optimizations: OptimizationsConfig | None = None
+    mirrors: dict[str, str] = Field(default_factory=dict)
 
 
 class InstallerSettings(BaseModel):

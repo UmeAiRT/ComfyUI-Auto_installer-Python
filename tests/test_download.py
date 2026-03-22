@@ -59,6 +59,10 @@ class TestDownloadFileFallback:
         hf_url = "https://huggingface.co/UmeAiRT/ComfyUI-Auto_installer/resolve/main/whl/nunchaku.whl"
         expected_ms = "https://www.modelscope.ai/datasets/UmeAiRT/ComfyUI-Auto-Installer-Assets/resolve/master/whl/nunchaku.whl"
 
+        mirrors = {
+            "https://huggingface.co/UmeAiRT/ComfyUI-Auto_installer/resolve/main/": "https://www.modelscope.ai/datasets/UmeAiRT/ComfyUI-Auto-Installer-Assets/resolve/master/"
+        }
+
         mock_httpx = MagicMock()
         # Always fail to trigger all fallbacks
         mock_httpx.side_effect = OSError("Download failed")
@@ -66,7 +70,7 @@ class TestDownloadFileFallback:
         with patch("src.utils.download._find_aria2c", return_value=None), \
              patch("src.utils.download._download_with_httpx", mock_httpx):
             try:
-                download_file(hf_url, dest)
+                download_file(hf_url, dest, mirrors=mirrors)
             except RuntimeError:
                 pass
 

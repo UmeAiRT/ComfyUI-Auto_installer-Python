@@ -256,7 +256,7 @@ def _install_miniconda_windows(
 
     try:
         log.item("Downloading Miniconda...")
-        download_file(conda_url, installer_path)
+        download_file(conda_url, installer_path, mirrors=deps.mirrors if deps else None)
 
         # Verify SHA-256 integrity using the hash from dependencies.json
         if expected_hash:

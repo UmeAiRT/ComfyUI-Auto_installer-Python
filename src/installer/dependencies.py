@@ -171,7 +171,7 @@ def install_wheels(
         log.sub(f"Installing {whl_name}...")
 
         try:
-            download_file(whl_url, wheel_path, checksum=whl_checksum)
+            download_file(whl_url, wheel_path, checksum=whl_checksum, mirrors=deps.mirrors)
             uv_install(python_exe, [str(wheel_path)], ignore_errors=True)
         except Exception as e:
             log.warning(f"Failed to install {whl_name}: {e}", level=3)
