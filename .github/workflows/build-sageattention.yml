@@ -149,7 +149,7 @@ jobs:
           MAX_JOBS: "1"
           PATH: "/build-venv/bin:/usr/local/cuda/bin:$PATH"
         run: |
-          $VENV_PYTHON -m pip wheel . --no-deps --no-build-isolation -w /wheels
+          $VENV_PYTHON setup.py bdist_wheel --dist-dir /wheels
 
       - name: List built wheels
         run: ls -lah /wheels/
