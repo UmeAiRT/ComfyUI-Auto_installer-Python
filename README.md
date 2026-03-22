@@ -74,66 +74,17 @@ umeairt-comfyui-installer install --path /path/to/install -v
 
 ### Option D: Docker Container
 
-Pre-built images are available on **GitHub Container Registry** — no build required:
+Requires [Docker](https://www.docker.com/products/docker-desktop/) and an NVIDIA GPU.
 
 ```bash
-docker pull ghcr.io/umeairt/comfyui:latest         # Standard
-docker pull ghcr.io/umeairt/comfyui:latest-cloud    # With JupyterLab
+docker run --gpus all -p 8188:8188 -v comfyui:/data ghcr.io/umeairt/comfyui:latest
 ```
 
-**Quick start** (requires [NVIDIA Container Toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html)):
+Open **http://localhost:8188** — done! ✅
 
-```bash
-docker run --gpus all -p 8188:8188 ghcr.io/umeairt/comfyui:latest
-```
+All your data (models, nodes, outputs) is stored in the `comfyui` volume and persists between restarts. To use a local folder instead: replace `comfyui:/data` with `./comfyui_data:/data`.
 
-Or use `docker-compose.yml` for persistent data:
-
-```bash
-git clone https://github.com/UmeAiRT/ComfyUI-Auto_installer-Python.git
-cd ComfyUI-Auto_installer-Python
-docker compose up -d
-```
-
-Access ComfyUI at **http://localhost:8188** 🎉
-
-#### Custom Node Bundles
-
-Control which nodes get installed via the `NODE_TIER` env variable:
-
-| `NODE_TIER` | Content | Use Case |
-|-------------|---------|----------|
-| `minimal` | ComfyUI-Manager only | Quick testing, debug |
-| `umeairt` | + UmeAiRT Sync/Toolkit + essentials | UmeAiRT workflows |
-| `full` | + all community nodes (~34) | **Default** — full install |
-
-```bash
-docker run --gpus all -e NODE_TIER=umeairt -p 8188:8188 ghcr.io/umeairt/comfyui:latest
-```
-
-#### Cloud Variant (RunPod / Cloud)
-
-The `cloud` image adds **JupyterLab** alongside ComfyUI for remote development:
-
-```bash
-docker run --gpus all -e JUPYTER_ENABLE=true -e JUPYTER_TOKEN=mysecret -p 8188:8188 -p 8888:8888 ghcr.io/umeairt/comfyui:latest-cloud
-```
-
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `JUPYTER_ENABLE` | `false` | Start JupyterLab alongside ComfyUI |
-| `JUPYTER_TOKEN` | *(empty)* | Access token (empty = no auth) |
-| `JUPYTER_PORT` | `8888` | JupyterLab port |
-
-#### Building Locally
-
-```bash
-# Standard image
-docker build -t umeairt/comfyui:latest .
-
-# Cloud image (with JupyterLab)
-docker build --build-arg VARIANT=cloud -t umeairt/comfyui:cloud .
-```
+> See [Docker docs](docs/docker.md) for customization options (node bundles, JupyterLab cloud variant).
 
 ## 📂 Post-Installation
 

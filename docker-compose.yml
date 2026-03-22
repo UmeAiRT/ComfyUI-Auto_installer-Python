@@ -4,7 +4,6 @@ services:
       context: .
       args:
         # ── Image Variant ───────────────────────────────────────────
-        # Controls which flavor of the image to build:
         #   standard → ComfyUI only (default)
         #   cloud    → ComfyUI + JupyterLab (for RunPod / cloud)
         VARIANT: standard
@@ -17,38 +16,33 @@ services:
       # - "8888:8888"
     environment:
       # ── Custom Nodes Bundle ─────────────────────────────────────
-      # Controls which set of custom nodes gets installed on startup.
-      # Each tier includes all nodes from lower tiers (additive):
-      #   minimal  → ComfyUI-Manager only (bare minimum)
+      #   minimal  → ComfyUI-Manager only
       #   umeairt  → + UmeAiRT Sync/Toolkit + essential creative nodes
-      #   full     → + all community nodes (default, ~34 nodes)
+      #   full     → + all community nodes (~34 nodes, default)
       - NODE_TIER=full
       # ── JupyterLab (cloud variant only) ─────────────────────────
       # Requires: VARIANT: cloud in build args above.
-      # Uncomment these lines to enable JupyterLab at startup:
       # - JUPYTER_ENABLE=true
       # - JUPYTER_TOKEN=mysecrettoken
       # - JUPYTER_PORT=8888
-    # Run as the non-root user created in the Dockerfile (UID 1000).
-    # If your host volumes are owned by a different UID, set PUID/PGID
-    # in a .env file and rebuild with matching --build-arg values.
     user: "1000:1000"
     volumes:
-      # Map the auto-installer's external architecture directly to host directories.
-      # This isolates your heavy downloads and generated images outside the container.
-      # Upon first boot, the entrypoint will automatically clone missing custom nodes.
-      # Edit these paths to match your host machine, or use a .env file.
-      - ./docker_data/models:/app/models
-      - ./docker_data/custom_nodes:/app/custom_nodes
-      - ./docker_data/output:/app/output
-      - ./docker_data/input:/app/input
-      - ./docker_data/user:/app/user
+      # Single volume for ALL persistent data (models, nodes, outputs, etc.)
+      # Everything is stored in /data inside the container and symlinked to /app.
+      #
+      # Option 1 — Docker managed volume (recommended):
+      - comfyui-data:/data
+      #
+      # Option 2 — Local folder (uncomment below, comment above):
+      # - ./comfyui_data:/data
     deploy:
       resources:
         reservations:
           devices:
-            # NVIDIA Container Toolkit passthrough (Requires WSL2 / Linux host with drivers)
-            # If you are using CPU-only or a non-NVIDIA GPU, comment out these 3 lines.
             - driver: nvidia
               count: all
               capabilities: [gpu]
+
+# Named volume (Docker manages storage location automatically)
+volumes:
+  comfyui-data:

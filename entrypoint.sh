@@ -1,7 +1,6 @@
 #!/usr/bin/env bash
 set -e
 
-# Change to the container's application mapping directory
 cd /app
 
 # ─── Configuration ──────────────────────────────────────────────
@@ -16,31 +15,50 @@ cd /app
 NODE_TIER="${NODE_TIER:-full}"
 
 # JupyterLab (cloud variant only — requires --build-arg VARIANT=cloud)
-#   JUPYTER_ENABLE  → set to "true" to start JupyterLab alongside ComfyUI
-#   JUPYTER_TOKEN   → access token (empty = no authentication)
-#   JUPYTER_PORT    → listening port (default: 8888)
 JUPYTER_ENABLE="${JUPYTER_ENABLE:-false}"
 JUPYTER_TOKEN="${JUPYTER_TOKEN:-}"
 JUPYTER_PORT="${JUPYTER_PORT:-8888}"
 
+# ─── Persistent data (/data volume) ─────────────────────────────
+# All user data lives in /data so a single volume mount is enough:
+#   docker run -v comfyui:/data ...          (Docker managed volume)
+#   docker run -v ./my_data:/data ...        (local folder)
+#
+# The directories below are created in /data and symlinked into /app
+# so ComfyUI finds them where it expects.
+DATA_DIRS="models custom_nodes output input user"
+
+for dir in $DATA_DIRS; do
+    # Create the directory in /data if it doesn't exist
+    mkdir -p "/data/${dir}"
+
+    # Remove the build-time directory (or stale symlink) inside /app
+    if [ -L "/app/${dir}" ]; then
+        rm "/app/${dir}"
+    elif [ -d "/app/${dir}" ]; then
+        # Move any build-time content into /data (first boot only)
+        if [ "$(ls -A /app/${dir} 2>/dev/null)" ]; then
+            cp -rn "/app/${dir}/." "/data/${dir}/" 2>/dev/null || true
+        fi
+        rm -rf "/app/${dir}"
+    fi
+
+    # Create symlink: /app/models → /data/models, etc.
+    ln -sfn "/data/${dir}" "/app/${dir}"
+done
+
 echo "================================================="
-echo "   UmeAiRT Docker Environment Initializing       "
+echo "   UmeAiRT ComfyUI — Docker Entrypoint           "
 echo "================================================="
 echo ""
 echo "  Node tier : ${NODE_TIER}"
+echo "  Data dir  : /data  ($(du -sh /data 2>/dev/null | cut -f1 || echo 'empty'))"
 if [ "$JUPYTER_ENABLE" = "true" ]; then
 echo "  Jupyter   : enabled (port ${JUPYTER_PORT})"
 fi
 echo ""
-echo "Running the UmeAiRT Updater..."
-echo "This guarantees your ComfyUI core, PyTorch dependencies,"
-echo "and Custom Nodes are completely up to date."
-echo "If you just mounted empty volumes from your host machine,"
-echo "this step will cleanly re-clone the missing items into them!"
-echo ""
 
-# Run the UmeAiRT CLI update routine.
-# This reconciles the container's actual volume state with the model JSONs.
+# ─── Update / install custom nodes ──────────────────────────────
 python -m src.cli update --path /app --yes --verbose --nodes "${NODE_TIER}"
 
 # ─── JupyterLab (background) ────────────────────────────────────
@@ -55,7 +73,7 @@ if [ "$JUPYTER_ENABLE" = "true" ]; then
             --port="${JUPYTER_PORT}" \
             --no-browser \
             --ServerApp.token="${JUPYTER_TOKEN}" \
-            --ServerApp.root_dir=/app &
+            --ServerApp.root_dir=/data &
     else
         echo ""
         echo "⚠️  JUPYTER_ENABLE=true but JupyterLab is not installed."
@@ -66,11 +84,9 @@ fi
 
 echo ""
 echo "================================================="
-echo "   Starting ComfyUI Web Server...                "
+echo "   Starting ComfyUI on port 8188...              "
 echo "================================================="
 
-# Activate the uv virtual environment created during the Docker build
+# Activate the venv and launch ComfyUI
 source /app/scripts/venv/bin/activate
-
-# Launch ComfyUI on 0.0.0.0 so the host can access it via port mapping
 exec python /app/ComfyUI/main.py --listen 0.0.0.0 --port 8188

@@ -31,10 +31,14 @@ RUN curl -LsSf https://astral.sh/uv/install.sh | sh \
 # Configure workspace
 WORKDIR /app
 
-# Ensure /app is owned by UID 1000 (the default non-root user)
+# Ensure /app and /data are owned by UID 1000 (the default non-root user)
+# /data is the single persistent volume mount point for all user data.
 # Ubuntu 24.04 already ships with a user at UID/GID 1000.
-# No need to create one — we just use the numeric UID everywhere.
-RUN chown -R 1000:1000 /app
+RUN chown -R 1000:1000 /app && mkdir -p /data && chown -R 1000:1000 /data
+
+# Declare /data as a volume so Docker auto-creates one if not explicitly mounted.
+# This prevents data loss for users who forget the -v flag.
+VOLUME /data
 
 # Copy the installer repository into the container
 COPY --chown=1000:1000 . /app
