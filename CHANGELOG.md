@@ -12,11 +12,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Config-driven optimizations** — `optimizations.packages[]` in `dependencies.json` replaces hardcoded Triton/SageAttention logic. Supports per-platform packages, GPU/OS filters (`requires`), torch version constraints, and retry options. Adding a new optimization = 1 JSON block, zero Python code.
 - **FlashAttention** — added as a Linux+NVIDIA-only package via the new optimization engine.
 - **`skip_step()` logger** — `InstallerLogger.skip_step()` decrements `total_steps` and logs a dimmed message when a step is conditionally skipped, keeping the progress counter accurate.
+- **Docker cloud variant** — `docker build --build-arg VARIANT=cloud` adds JupyterLab alongside ComfyUI for RunPod/cloud deployments. Runtime env vars: `JUPYTER_ENABLE`, `JUPYTER_TOKEN`, `JUPYTER_PORT`.
+- **Docker `NODE_TIER`** — environment variable to control which custom node bundle installs at container startup (`minimal`, `umeairt`, `full`). Also added `--nodes` flag to the `update` CLI command.
+- **GHCR auto-publish** — `docker-publish.yml` workflow builds and pushes both `standard` and `cloud` Docker images to `ghcr.io/umeairt/comfyui` on version tags.
 - **80 new tests** — 6 new test files covering `commands`, `prompts`, `nodes`, `updater`, `gpu`, and `download` modules.
 
 ### Changed
 
-- **Docker: CUDA 13.0 runtime** — base image changed from `python:3.12-slim` (CPU-only) to `nvidia/cuda:13.0.2-runtime-ubuntu22.04` for full RTX 50X0/40X0/30X0 GPU support.
+- **Docker: CUDA 13.0 runtime** — base image changed from `python:3.12-slim` (CPU-only) to `nvidia/cuda:13.0.2-cudnn-runtime-ubuntu24.04` for full RTX 50X0/40X0/30X0 GPU support.
 - **Docker: standalone uv** — replaced `pip install uv` with the standalone binary via `curl` (matches bootstrap approach).
 - **Docker: fast startup** — replaced `user: root` + `chown -R` at every boot with `user: "1000:1000"` (fixed UID created at build time).
 - **Error handling** — `SystemExit(1)` in updater replaced with `InstallerFatalError` for consistent error handling.
@@ -27,6 +30,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Docker: CRLF line endings** — `entrypoint.sh` broken on Linux due to Windows `\r\n` endings. Fixed by adding `sed -i 's/\r$//'` in Dockerfile and `.gitattributes` enforcing LF on `.sh` files.
+- **Docker: PEP 668 compliance** — Ubuntu 24.04's "externally managed" Python marker removed to allow system-wide `uv pip install`.
+- **Docker: smoke test** — CI test replaced HTTP health check (requires GPU) with static image content verification.
 - Updater step counter becoming inaccurate when `custom_nodes.json` is missing (now uses `skip_step()`).
 - Logger singleton state leaking between tests (added `autouse` reset fixture in `conftest.py`).
 - Redundant import of `CommandError` in `nodes.py`.

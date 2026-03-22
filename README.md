@@ -1,10 +1,10 @@
 # 🚀 UmeAiRT's ComfyUI Auto-Installer
 
-![Version](https://img.shields.io/badge/Version-5.0.0--alpha.1-orange.svg)
+![Version](https://img.shields.io/badge/Version-5.0.0--alpha.2-orange.svg)
 ![Python](https://img.shields.io/badge/Python-3.11%20|%203.12%20|%203.13-blue.svg)
-![Platform](https://img.shields.io/badge/Platform-Windows%20%7C%20Linux%20%7C%20macOS-lightgrey.svg)
+![Platform](https://img.shields.io/badge/Platform-Windows%20%7C%20Linux%20%7C%20macOS%20%7C%20Docker-lightgrey.svg)
 ![License](https://img.shields.io/badge/License-MIT-green.svg)
-![Tests](https://img.shields.io/badge/Tests-230%2B%20passed-brightgreen.svg)
+![Tests](https://img.shields.io/badge/Tests-369%20passed-brightgreen.svg)
 
 Cross-platform Python CLI to fully automate the installation, update, and configuration of ComfyUI. One-click setup with GPU optimizations, curated custom nodes, and VRAM-aware model downloads.
 
@@ -72,18 +72,68 @@ umeairt-comfyui-installer install --path /path/to/install --type venv
 umeairt-comfyui-installer install --path /path/to/install -v
 ```
 
-### Option D: Docker Container (Advanced)
+### Option D: Docker Container
 
-If you prefer an isolated container environment, a fully configured `docker-compose.yml` is provided. It binds your heavy data (Models, Custom Nodes, Outputs) to the host machine so you never lose data when upgrading.
+Pre-built images are available on **GitHub Container Registry** — no build required:
 
-1. Ensure [Docker Desktop](https://www.docker.com/products/docker-desktop/) (or Docker Engine) and the [NVIDIA Container Toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html) are installed.
-2. Clone this repository.
-3. Start the container in detached mode:
-   ```bash
-   docker-compose up -d
-   ```
-4. The first boot seamlessly clones any missing components into your host-mounted `./docker_data` folders.
-5. Access ComfyUI at `http://localhost:8188`!
+```bash
+docker pull ghcr.io/umeairt/comfyui:latest         # Standard
+docker pull ghcr.io/umeairt/comfyui:latest-cloud    # With JupyterLab
+```
+
+**Quick start** (requires [NVIDIA Container Toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html)):
+
+```bash
+docker run --gpus all -p 8188:8188 ghcr.io/umeairt/comfyui:latest
+```
+
+Or use `docker-compose.yml` for persistent data:
+
+```bash
+git clone https://github.com/UmeAiRT/ComfyUI-Auto_installer-Python.git
+cd ComfyUI-Auto_installer-Python
+docker compose up -d
+```
+
+Access ComfyUI at **http://localhost:8188** 🎉
+
+#### Custom Node Bundles
+
+Control which nodes get installed via the `NODE_TIER` env variable:
+
+| `NODE_TIER` | Content | Use Case |
+|-------------|---------|----------|
+| `minimal` | ComfyUI-Manager only | Quick testing, debug |
+| `umeairt` | + UmeAiRT Sync/Toolkit + essentials | UmeAiRT workflows |
+| `full` | + all community nodes (~34) | **Default** — full install |
+
+```bash
+docker run --gpus all -e NODE_TIER=umeairt -p 8188:8188 ghcr.io/umeairt/comfyui:latest
+```
+
+#### Cloud Variant (RunPod / Cloud)
+
+The `cloud` image adds **JupyterLab** alongside ComfyUI for remote development:
+
+```bash
+docker run --gpus all -e JUPYTER_ENABLE=true -e JUPYTER_TOKEN=mysecret -p 8188:8188 -p 8888:8888 ghcr.io/umeairt/comfyui:latest-cloud
+```
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `JUPYTER_ENABLE` | `false` | Start JupyterLab alongside ComfyUI |
+| `JUPYTER_TOKEN` | *(empty)* | Access token (empty = no auth) |
+| `JUPYTER_PORT` | `8888` | JupyterLab port |
+
+#### Building Locally
+
+```bash
+# Standard image
+docker build -t umeairt/comfyui:latest .
+
+# Cloud image (with JupyterLab)
+docker build --build-arg VARIANT=cloud -t umeairt/comfyui:cloud .
+```
 
 ## 📂 Post-Installation
 
@@ -125,7 +175,7 @@ ComfyUI-Auto_installer/
 │   ├── platform/             # OS abstraction (Windows/Linux/macOS)
 │   └── utils/                # Logging, commands, packaging, GPU detection
 ├── scripts/                  # Config files (dependencies.json, custom_nodes.json)
-├── tests/                    # 230+ tests (unit + integration)
+├── tests/                    # 369 tests (unit + integration)
 ├── Install.bat / Install.sh  # Bootstrap entry points
 └── pyproject.toml            # Project metadata (hatchling)
 ```

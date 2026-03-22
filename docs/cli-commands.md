@@ -34,6 +34,13 @@ Update ComfyUI core, all bundled custom nodes, and Python dependencies.
 umeairt-comfyui-installer update --path /path/to/install
 ```
 
+| Option | Description | Default |
+|--------|-------------|---------|
+| `--path` | Installation directory | `.` |
+| `--verbose` / `-v` | Show detailed output | Off |
+| `--nodes` / `-n` | Node bundle: `minimal`, `umeairt`, `full` | `full` |
+| `--yes` / `-y` | Non-interactive mode | Off |
+
 ### `download-models`
 
 Interactive model download menu with VRAM-based recommendations.

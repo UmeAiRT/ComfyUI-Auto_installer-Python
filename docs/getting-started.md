@@ -43,11 +43,18 @@ umeairt-comfyui-installer install --path /path/to/install --type venv
 ### Option D: Docker
 
 ```bash
-docker-compose up -d
-# Access ComfyUI at http://localhost:8188
+# Pull and run (no build required)
+docker run --gpus all -p 8188:8188 ghcr.io/umeairt/comfyui:latest
 ```
 
-See [Docker](docker.md) for details.
+Or with persistent data via `docker-compose.yml`:
+
+```bash
+docker compose up -d
+```
+
+A **cloud variant** with JupyterLab is also available for RunPod deployments.
+See [Docker](docker.md) for full configuration details.
 
 ## Post-Installation
 

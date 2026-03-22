@@ -136,7 +136,7 @@
 ## 10. Future Features
 
 ### ~~10.1 Container Support~~ ✅
-> **Done:** Full Docker support with CUDA 13.0 runtime, `--skip-nodes` for build-time, runtime entrypoint for custom nodes, volumes on host drive, CI smoke test.
+> **Done:** Full Docker support with CUDA 13.0 runtime, GHCR auto-publishing, cloud variant with JupyterLab, configurable node tiers, CI build verification for both variants.
 - [x] Dockerfile + docker-compose.yml
 - [x] NVIDIA Container Toolkit support
 - [x] Volume mapping for models/outputs
@@ -144,13 +144,18 @@
 - [x] `.dockerignore` for fast context transfer
 - [x] Linux wheel compatibility (skip win_amd64 wheels)
 - [x] Docker CI smoke test in GitHub Actions
+- [x] `NODE_TIER` env var for custom node bundle selection
+- [x] Cloud variant with JupyterLab (`--build-arg VARIANT=cloud`)
+- [x] GHCR auto-publish workflow (`docker-publish.yml`)
+- [x] `--nodes` flag added to `update` CLI command
 
 ### ~~10.2 CI/CD Pipeline~~ ✅
-> **Done:** Full CI matrix with lint, security audit, tests, coverage, Windows E2E, Docker smoke test.
+> **Done:** Full CI matrix with lint, security audit, tests, coverage, Windows E2E, Docker smoke test, GHCR publishing.
 - [x] CI matrix: Ubuntu + Windows × Python 3.11/3.12/3.13
 - [x] Coverage threshold enforcement (70%)
 - [x] Automated testing on fresh Windows VMs (full install smoke test)
 - [x] Docker build & smoke test (ubuntu-latest)
+- [x] GHCR auto-publish on version tags
 
 ### 10.3 CI Release Automation
 > **TODO:** Automate GitHub Releases via a CI workflow triggered by git tags (e.g. `v5.0.0-alpha.2`). Steps: run tests, build changelog excerpt, create GitHub Release with assets.
