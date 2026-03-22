@@ -5,6 +5,33 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [5.0.0-alpha.3] — SageAttention CI & Docker Lite
+
+### Added
+
+- **SageAttention CI workflow** — `build-sageattention.yml` compiles SA2 (v2.2.0, sm_80+PTX for Python 3.11/3.12/3.13) and SA3 (v1.0.0, sm_100 Blackwell) wheels. Automated manifest update job uploads wheels + SHA256 checksums to HuggingFace Assets.
+- **Docker lite variant** — `docker build --build-arg VARIANT=lite` produces a ~2 GB image without pre-installed PyTorch. The entrypoint detects missing venv and runs a full install on first boot (~5-10 min), then caches in the persistent volume. Also available as `lite-cloud` with JupyterLab.
+- **Docker image variants** — 4 published images: `latest`, `latest-cloud`, `latest-lite`, `latest-lite-cloud`.
+- **JupyterLab bash default** — Jupyter terminals default to bash via `--ServerApp.terminado_settings`.
+- **JupyterLab trash disabled** — `--FileContentsManager.delete_to_trash=False` saves disk space in containers.
+- **Entrypoint first-run detection** — checks for `/app/scripts/venv` existence to decide whether to run initial install.
+
+### Changed
+
+- **Docker base image** — switched from `nvidia/cuda:13.0.2-cudnn-runtime-ubuntu24.04` to `nvidia/cuda:13.0.2-runtime-ubuntu24.04` (cuDNN removed — PyTorch bundles its own).
+- **Docker build optimization** — lite variants skip `build-essential` and `python3.12-dev` entirely, standard variants include them for compilation.
+- **CI SageAttention images** — switched from `cudnn-devel` to `devel` (cuDNN unnecessary for CUDA kernel compilation).
+- **SageAttention build strategy** — SA2 uses `8.0+PTX` (single native arch + PTX forward compat) to prevent OOM errors during CI compilation.
+- **`.dockerignore` expanded** — excludes `.github/`, `docs/`, `bootstrap/`, IDE configs, and `docker-compose.yml`.
+- **`dependencies.json`** — updated SageAttention wheel entries with correct HuggingFace URLs, versions (SA2 2.2.0, SA3 1.0.0), and SHA256 checksums.
+- **406 tests** — up from 369 (all passing).
+
+### Fixed
+
+- **SageAttention CI OOM** — compilation now uses `MAX_JOBS=1` and single-arch `8.0+PTX` strategy.
+- **HuggingFace repo name** — corrected `HF_REPO` to `UmeAiRT/ComfyUI-Auto-Installer-Assets`.
+- **SA3 wheel build** — fixed `setup.py bdist_wheel` for subdirectory package structure.
+
 ## [5.0.0-alpha.2] — Hardening & Optimization Engine
 
 ### Added

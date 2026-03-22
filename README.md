@@ -4,7 +4,7 @@
 ![Python](https://img.shields.io/badge/Python-3.11%20|%203.12%20|%203.13-blue.svg)
 ![Platform](https://img.shields.io/badge/Platform-Windows%20%7C%20Linux%20%7C%20macOS%20%7C%20Docker-lightgrey.svg)
 ![License](https://img.shields.io/badge/License-MIT-green.svg)
-![Tests](https://img.shields.io/badge/Tests-369%20passed-brightgreen.svg)
+![Tests](https://img.shields.io/badge/Tests-406%20passed-brightgreen.svg)
 
 Cross-platform Python CLI to fully automate the installation, update, and configuration of ComfyUI. One-click setup with GPU optimizations, curated custom nodes, and VRAM-aware model downloads.
 
@@ -84,13 +84,22 @@ Open **http://localhost:8188** — done! ✅
 
 All your data (models, nodes, outputs) is stored in the `comfyui-data` volume and persists between restarts. To use a local folder instead: replace `comfyui-data:/data` with `./comfyui_data:/data`.
 
+**Available image variants:**
+
+| Tag | Size | Description |
+|-----|------|-------------|
+| `latest` | ~4 GB | ComfyUI with pre-installed PyTorch (ready to go) |
+| `latest-cloud` | ~4.5 GB | + JupyterLab for RunPod / cloud |
+| `latest-lite` | ~2 GB | Minimal — installs PyTorch on first run (~5 min) |
+| `latest-lite-cloud` | ~2 GB | Lite + JupyterLab |
+
 **Cloud variant** (with JupyterLab for RunPod / remote):
 
 ```bash
 docker run --gpus all --name comfyui -p 8188:8188 -p 8888:8888 -v comfyui-data:/data -e JUPYTER_ENABLE=true -e NODE_TIER=umeairt ghcr.io/umeairt/comfyui:latest-cloud
 ```
 
-> **Tip:** Use `-e NODE_TIER=minimal`, `umeairt`, or `full` (default) to control which custom nodes are installed on boot. See [Docker docs](docs/docker.md) for more options like Jupyter token and local builds.
+> **Tip:** Use `-e NODE_TIER=minimal`, `umeairt`, or `full` (default) to control which custom nodes are installed on boot. The **lite** variants are ideal for RunPod where fast image pulls matter — PyTorch installs once on first boot and is cached in the persistent volume.
 
 ## 📂 Post-Installation
 
@@ -132,7 +141,7 @@ ComfyUI-Auto_installer/
 │   ├── platform/             # OS abstraction (Windows/Linux/macOS)
 │   └── utils/                # Logging, commands, packaging, GPU detection
 ├── scripts/                  # Config files (dependencies.json, custom_nodes.json)
-├── tests/                    # 369 tests (unit + integration)
+├── tests/                    # 406 tests (unit + integration)
 ├── Install.bat / Install.sh  # Bootstrap entry points
 └── pyproject.toml            # Project metadata (hatchling)
 ```

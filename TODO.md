@@ -163,6 +163,21 @@
 - [ ] Extract changelog section for the tag
 - [ ] Create GitHub Release with release notes
 
+### ~~10.5 SageAttention CI~~ ✅
+> **Done:** `build-sageattention.yml` workflow compiles SA2 (v2.2.0, `8.0+PTX`, Python 3.11/3.12/3.13) and SA3 (v1.0.0, sm_100 Blackwell). Wheels uploaded to HuggingFace Assets with automated manifest update. OOM resolved via single-arch + `MAX_JOBS=1`.
+- [x] SA2 wheel builds (3 Python versions × sm_80+PTX)
+- [x] SA3 Blackwell wheel build (Python 3.13 × sm_100)
+- [x] Automated `tools_manifest.json` update with SHA256
+- [x] `dependencies.json` updated with correct wheel URLs and checksums
+
+### ~~10.6 Docker Lite Variant~~ ✅
+> **Done:** `VARIANT=lite` and `VARIANT=lite-cloud` produce ~2 GB images without pre-installed PyTorch. Entrypoint auto-detects missing venv and runs full install on first boot. Cached in persistent volume for instant subsequent boots.
+- [x] Conditional `VARIANT` in Dockerfile (skip PyTorch install)
+- [x] Entrypoint first-run detection (`! -d /app/scripts/venv`)
+- [x] Docker publish workflow builds all 4 variants
+- [x] JupyterLab bash default + trash disabled
+- [x] Base image optimized (cuDNN removed)
+
 ### ~~10.4 macOS Support~~ ✅
 > **Done:** `MacOSPlatform` implemented. Native MPS/CPU handled automatically without CUDA contamination. Badge added to README. Tests added.
 
@@ -171,7 +186,7 @@
 
 ---
 
-## Priority Order (Updated 2026-03-21)
+## Priority Order (Updated 2026-03-22)
 
 **One open item remains:**
 1. **10.3 CI Release Automation** — GitHub Release workflow triggered by git tags
