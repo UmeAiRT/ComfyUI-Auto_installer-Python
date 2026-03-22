@@ -25,12 +25,14 @@ WORKDIR /app
 
 # Create a non-root standard user for security (UID 1000)
 # Use a fixed UID/GID so mounted volumes have predictable ownership
-RUN groupadd -g 1000 umeairt && \
-    useradd -m -u 1000 -g 1000 umeairt && \
-    chown -R umeairt:umeairt /app
+# Ubuntu 24.04 already has a group at GID 1000, so use || true for idempotency
+RUN (groupadd -g 1000 umeairt || true) && \
+    useradd -m -u 1000 -g umeairt umeairt 2>/dev/null || \
+    useradd -m -u 1000 -g 1000 umeairt 2>/dev/null || true && \
+    chown -R 1000:1000 /app
 
 # Copy the installer repository into the container
-COPY --chown=umeairt:umeairt . /app
+COPY --chown=1000:1000 . /app
 
 # Install the installer package system-wide
 RUN uv pip install --system -e .
