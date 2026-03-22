@@ -99,6 +99,51 @@ class TestUpdateCommand:
             assert result.exit_code == 0
             mock_run.assert_called_once()
 
+    def test_update_with_nodes_option(self, tmp_path: Path) -> None:
+        """Update command should pass node_tier to run_update."""
+        with patch("src.installer.updater.run_update") as mock_run:
+            result = runner.invoke(app, [
+                "update",
+                "--path", str(tmp_path),
+                "--nodes", "minimal",
+            ])
+            assert result.exit_code == 0
+            mock_run.assert_called_once()
+            call_kwargs = mock_run.call_args[1]
+            assert call_kwargs["node_tier"] == "minimal"
+
+    def test_update_with_umeairt_tier(self, tmp_path: Path) -> None:
+        """Update command should accept umeairt tier."""
+        with patch("src.installer.updater.run_update") as mock_run:
+            result = runner.invoke(app, [
+                "update",
+                "--path", str(tmp_path),
+                "--nodes", "umeairt",
+            ])
+            assert result.exit_code == 0
+            call_kwargs = mock_run.call_args[1]
+            assert call_kwargs["node_tier"] == "umeairt"
+
+    def test_update_invalid_nodes_tier(self, tmp_path: Path) -> None:
+        """Update command should reject invalid node tier."""
+        result = runner.invoke(app, [
+            "update",
+            "--path", str(tmp_path),
+            "--nodes", "invalid_tier",
+        ])
+        assert result.exit_code != 0
+
+    def test_update_default_tier_is_full(self, tmp_path: Path) -> None:
+        """Update command default node tier should be 'full'."""
+        with patch("src.installer.updater.run_update") as mock_run:
+            result = runner.invoke(app, [
+                "update",
+                "--path", str(tmp_path),
+            ])
+            assert result.exit_code == 0
+            call_kwargs = mock_run.call_args[1]
+            assert call_kwargs["node_tier"] == "full"
+
 
 class TestDownloadModelsCommand:
     """Tests for the download-models CLI command."""
