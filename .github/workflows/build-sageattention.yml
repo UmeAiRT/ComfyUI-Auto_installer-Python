@@ -42,7 +42,7 @@ jobs:
       - name: Install uv
         run: |
           curl -LsSf https://astral.sh/uv/install.sh | sh
-          cp /root/.local/bin/uv /usr/local/bin/uv
+          cp $HOME/.local/bin/uv /usr/local/bin/uv
 
       - name: Create build venv with Python ${{ matrix.python }}
         run: |
@@ -118,7 +118,7 @@ jobs:
       - name: Install uv
         run: |
           curl -LsSf https://astral.sh/uv/install.sh | sh
-          cp /root/.local/bin/uv /usr/local/bin/uv
+          cp $HOME/.local/bin/uv /usr/local/bin/uv
 
       - name: Create build venv with Python 3.13
         run: |
