@@ -24,13 +24,10 @@ RUN curl -LsSf https://astral.sh/uv/install.sh | sh \
 # Configure workspace
 WORKDIR /app
 
-# Create a non-root standard user for security (UID 1000)
-# Use a fixed UID/GID so mounted volumes have predictable ownership
-# Ubuntu 24.04 already has a group at GID 1000, so use || true for idempotency
-RUN (groupadd -g 1000 umeairt || true) && \
-    useradd -m -u 1000 -g umeairt umeairt 2>/dev/null || \
-    useradd -m -u 1000 -g 1000 umeairt 2>/dev/null || true && \
-    chown -R 1000:1000 /app
+# Ensure /app is owned by UID 1000 (the default non-root user)
+# Ubuntu 24.04 already ships with a user at UID/GID 1000.
+# No need to create one — we just use the numeric UID everywhere.
+RUN chown -R 1000:1000 /app
 
 # Copy the installer repository into the container
 COPY --chown=1000:1000 . /app
@@ -39,7 +36,7 @@ COPY --chown=1000:1000 . /app
 RUN uv pip install --system -e .
 
 # Switch to non-root user for the build phase
-USER umeairt
+USER 1000
 
 # Pre-install ComfyUI core during the image build phase.
 # This downloads PyTorch with CUDA, installs ComfyUI requirements, and sets up the venv.
