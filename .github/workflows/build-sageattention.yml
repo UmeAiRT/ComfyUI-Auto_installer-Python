@@ -38,10 +38,10 @@ jobs:
     steps:
       - name: Add 10GB swap (runners only have 7GB RAM)
         run: |
-          fallocate -l 10G /swapfile
-          chmod 600 /swapfile
-          mkswap /swapfile
-          swapon /swapfile
+          fallocate -l 10G /tmp/build-swap
+          chmod 600 /tmp/build-swap
+          mkswap /tmp/build-swap
+          swapon /tmp/build-swap
           free -h
 
       - name: Install system dependencies
@@ -123,10 +123,10 @@ jobs:
     steps:
       - name: Add 10GB swap (runners only have 7GB RAM)
         run: |
-          fallocate -l 10G /swapfile
-          chmod 600 /swapfile
-          mkswap /swapfile
-          swapon /swapfile
+          fallocate -l 10G /tmp/build-swap
+          chmod 600 /tmp/build-swap
+          mkswap /tmp/build-swap
+          swapon /tmp/build-swap
           free -h
 
       - name: Install system dependencies
