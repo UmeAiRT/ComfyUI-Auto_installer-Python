@@ -142,6 +142,16 @@ jobs:
           cd /sageattention
           git checkout ${{ github.event.inputs.sageattention_ref || 'main' }}
 
+      - name: Patch SA3 setup.py (bypass runtime GPU detection for cross-compilation)
+        run: |
+          cd /sageattention/sageattention3_blackwell
+          echo "=== Before patch (line 62) ==="
+          sed -n '58,66p' setup.py
+          # Replace torch.cuda.get_device_capability() with hardcoded Blackwell (10, 0)
+          sed -i 's/torch.cuda.get_device_capability()/(10, 0)/g' setup.py
+          echo "=== After patch ==="
+          sed -n '58,66p' setup.py
+
       - name: Build SageAttention 3 Blackwell wheel
         working-directory: /sageattention/sageattention3_blackwell
         env:
