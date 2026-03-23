@@ -21,13 +21,9 @@ on:
         type: boolean
         default: false
       node_tier:
-        description: 'Custom nodes tier'
-        type: choice
-        options:
-          - umeairt
-          - full
-          - minimal
-        default: umeairt
+        description: 'Specific tier to build (empty = all detected tiers)'
+        default: ''
+        required: false
 
 env:
   HF_REPO: UmeAiRT/ComfyUI-Auto-Installer-Assets
@@ -48,7 +44,7 @@ jobs:
       should_build: ${{ steps.check.outputs.should_build }}
       version: ${{ steps.check.outputs.version }}
       download_url: ${{ steps.check.outputs.download_url }}
-      node_tier: ${{ steps.check.outputs.node_tier }}
+      tiers_json: ${{ steps.check.outputs.tiers_json }}
     steps:
       - uses: actions/checkout@v4
 
@@ -58,13 +54,28 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           FORCE_REBUILD: ${{ github.event.inputs.force_rebuild || 'false' }}
           INPUT_VERSION: ${{ github.event.inputs.comfyui_version || '' }}
-          INPUT_TIER: ${{ github.event.inputs.node_tier || 'umeairt' }}
+          INPUT_TIER: ${{ github.event.inputs.node_tier || '' }}
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
         run: |
           set -euo pipefail
-          echo "node_tier=$INPUT_TIER" >> "$GITHUB_OUTPUT"
 
-          # Get the target version (input override or latest release)
+          # ── Detect tiers from custom_nodes.json ─────────────────────
+          if [ -n "$INPUT_TIER" ]; then
+            TIERS_JSON="[\"$INPUT_TIER\"]"
+            echo "Using manually specified tier: $INPUT_TIER"
+          else
+            TIERS_JSON=$(python3 -c "
+          import json
+          with open('scripts/custom_nodes.json') as f:
+              nodes = json.load(f)['nodes']
+          tiers = sorted({n['tier'] for n in nodes} - {'minimal'})
+          print(json.dumps(tiers))
+          ")
+            echo "Auto-detected tiers: $TIERS_JSON"
+          fi
+          echo "tiers_json=$TIERS_JSON" >> "$GITHUB_OUTPUT"
+
+          # ── Get the target version ──────────────────────────────────
           if [ -n "$INPUT_VERSION" ]; then
             VERSION="$INPUT_VERSION"
             echo "Using manually specified version: $VERSION"
@@ -87,54 +98,52 @@ jobs:
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
           echo "download_url=$DOWNLOAD_URL" >> "$GITHUB_OUTPUT"
 
-          # Check if this version+tier was already built (query distributions_manifest.json on HF)
+          # ── Check if any tier needs building ────────────────────────
           MANIFEST_URL="https://huggingface.co/${{ env.HF_REPO }}/resolve/main/${{ env.MANIFEST_NAME }}"
-          BUNDLE_KEY="${VERSION}_nvidia_${INPUT_TIER}"
-          ALREADY_BUILT="false"
+          NEED_BUILD="false"
 
-          if curl -sfL -o /tmp/dist_manifest.json "$MANIFEST_URL" 2>/dev/null; then
-            echo "Existing manifest found, checking for $BUNDLE_KEY..."
-            ALREADY_BUILT=$(python3 -c "
+          if [ "$FORCE_REBUILD" = "true" ]; then
+            NEED_BUILD="true"
+            echo "Force rebuild requested."
+          elif curl -sfL -o /tmp/dist_manifest.json "$MANIFEST_URL" 2>/dev/null; then
+            # Check if any tier is missing from the manifest
+            NEED_BUILD=$(python3 -c "
           import json
           with open('/tmp/dist_manifest.json') as f:
               m = json.load(f)
-          print('true' if '$BUNDLE_KEY' in m.get('distributions', {}) else 'false')
-          " 2>/dev/null || echo "false")
+          tiers = json.loads('$TIERS_JSON')
+          existing = m.get('distributions', {})
+          missing = [t for t in tiers if f'${VERSION}_nvidia_{t}' not in existing]
+          print('true' if missing else 'false')
+          " 2>/dev/null || echo "true")
           else
+            NEED_BUILD="true"
             echo "No existing manifest found — first build."
           fi
 
-          echo "Already built: $ALREADY_BUILT"
-
-          if [ "$FORCE_REBUILD" = "true" ] || [ "$ALREADY_BUILT" = "false" ]; then
-            echo "should_build=true" >> "$GITHUB_OUTPUT"
-            echo "✅ Will build: version=$VERSION tier=$INPUT_TIER (already_built=$ALREADY_BUILT, force=$FORCE_REBUILD)"
-          else
-            echo "should_build=false" >> "$GITHUB_OUTPUT"
-            echo "⏭️ Skip: $BUNDLE_KEY already exists in manifest"
-          fi
+          echo "should_build=$NEED_BUILD" >> "$GITHUB_OUTPUT"
+          echo "Build decision: $NEED_BUILD (tiers: $TIERS_JSON)"
 
   # ---------------------------------------------------------------------------
   # Job 2: Build the portable bundle
   # ---------------------------------------------------------------------------
   build-bundle:
-    name: "Build UmeAiRT Portable Bundle"
+    name: "Build Bundle (${{ matrix.node_tier }})"
     needs: check-release
     if: needs.check-release.outputs.should_build == 'true'
     runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        node_tier: ${{ fromJson(needs.check-release.outputs.tiers_json) }}
     outputs:
-      bundle_name: ${{ steps.compress.outputs.bundle_name }}
-      bundle_sha256: ${{ steps.compress.outputs.bundle_sha256 }}
-      bundle_size: ${{ steps.compress.outputs.bundle_size }}
       python_version: ${{ steps.verify.outputs.python_version }}
       pytorch_version: ${{ steps.verify.outputs.pytorch_version }}
       cuda_version: ${{ steps.verify.outputs.cuda_version }}
-      node_count: ${{ steps.nodes.outputs.node_count }}
-      node_list: ${{ steps.nodes.outputs.node_list }}
     env:
       COMFYUI_VERSION: ${{ needs.check-release.outputs.version }}
       DOWNLOAD_URL: ${{ needs.check-release.outputs.download_url }}
-      NODE_TIER: ${{ needs.check-release.outputs.node_tier }}
+      NODE_TIER: ${{ matrix.node_tier }}
       PORTABLE_ROOT: C:\portable
       PORTABLE: C:\portable\ComfyUI_windows_portable
     steps:
@@ -682,12 +691,36 @@ jobs:
           echo "BUNDLE_PATH=C:\$bundleName" >> $env:GITHUB_ENV
 
       # ── Upload as GitHub artifact ─────────────────────────────────
+      # Save bundle metadata for manifest job
+      - name: Save bundle metadata
+        shell: pwsh
+        run: |
+          $meta = @{
+            bundle_name = $env:BUNDLE_NAME
+            bundle_sha256 = "${{ steps.compress.outputs.bundle_sha256 }}"
+            bundle_size = "${{ steps.compress.outputs.bundle_size }}"
+            python_version = "${{ steps.verify.outputs.python_version }}"
+            pytorch_version = "${{ steps.verify.outputs.pytorch_version }}"
+            cuda_version = "${{ steps.verify.outputs.cuda_version }}"
+            node_tier = $env:NODE_TIER
+            node_count = "${{ steps.nodes.outputs.node_count }}"
+            node_list = '${{ steps.nodes.outputs.node_list }}'
+          } | ConvertTo-Json
+          $meta | Set-Content -Path "C:\bundle_metadata.json"
+
       - name: Upload bundle as artifact
         uses: actions/upload-artifact@v4
         with:
-          name: portable-bundle
+          name: portable-bundle-${{ matrix.node_tier }}
           path: ${{ env.BUNDLE_PATH }}
           retention-days: 7
+
+      - name: Upload bundle metadata
+        uses: actions/upload-artifact@v4
+        with:
+          name: bundle-metadata-${{ matrix.node_tier }}
+          path: C:\bundle_metadata.json
+          retention-days: 1
 
       # ── Upload to HuggingFace ─────────────────────────────────────
       - name: Upload to HuggingFace
@@ -752,19 +785,10 @@ jobs:
   update-manifest:
     name: "Update distributions manifest"
     needs: [check-release, build-bundle]
-    if: needs.build-bundle.result == 'success'
+    if: always() && needs.build-bundle.result != 'cancelled' && needs.build-bundle.result != 'failure'
     runs-on: ubuntu-latest
     env:
       COMFYUI_VERSION: ${{ needs.check-release.outputs.version }}
-      NODE_TIER: ${{ needs.check-release.outputs.node_tier }}
-      BUNDLE_NAME: ${{ needs.build-bundle.outputs.bundle_name }}
-      BUNDLE_SHA256: ${{ needs.build-bundle.outputs.bundle_sha256 }}
-      BUNDLE_SIZE: ${{ needs.build-bundle.outputs.bundle_size }}
-      PYTHON_VERSION: ${{ needs.build-bundle.outputs.python_version }}
-      PYTORCH_VERSION: ${{ needs.build-bundle.outputs.pytorch_version }}
-      CUDA_VERSION: ${{ needs.build-bundle.outputs.cuda_version }}
-      NODE_COUNT: ${{ needs.build-bundle.outputs.node_count }}
-      NODE_LIST: ${{ needs.build-bundle.outputs.node_list }}
     steps:
       - name: Setup Python
         uses: actions/setup-python@v5
@@ -774,38 +798,27 @@ jobs:
       - name: Install SDK
         run: pip install huggingface_hub modelscope
 
+      - name: Download all bundle metadata
+        uses: actions/download-artifact@v4
+        with:
+          pattern: bundle-metadata-*
+          path: metadata
+
       - name: Update distributions_manifest.json
         env:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
           MODELSCOPE_API_TOKEN: ${{ secrets.MODELSCOPE_API_TOKEN }}
         run: |
           python3 << 'PYEOF'
-          import json, os, datetime, tempfile, sys
+          import json, os, datetime, tempfile, sys, glob
 
           hf_repo    = os.environ["HF_REPO"]
           ms_repo    = os.environ["MS_REPO"]
           ms_endpoint = os.environ["MS_ENDPOINT"]
           dist_dir   = os.environ["DIST_DIR"]
           manifest_name = os.environ["MANIFEST_NAME"]
-
-          version      = os.environ["COMFYUI_VERSION"]
-          tier         = os.environ["NODE_TIER"]
-          bundle_name  = os.environ["BUNDLE_NAME"]
-          sha256       = os.environ["BUNDLE_SHA256"]
-          size_bytes   = int(os.environ["BUNDLE_SIZE"])
-          python_ver   = os.environ["PYTHON_VERSION"]
-          pytorch_ver  = os.environ["PYTORCH_VERSION"]
-          cuda_ver     = os.environ["CUDA_VERSION"]
-          node_count   = int(os.environ.get("NODE_COUNT", "0"))
-          node_list    = os.environ.get("NODE_LIST", "[]")
-
-          try:
-              nodes = json.loads(node_list)
-          except (json.JSONDecodeError, TypeError):
-              nodes = []
-
-          bundle_key = f"{version}_nvidia_{tier}"
-          today = datetime.date.today().isoformat()
+          version    = os.environ["COMFYUI_VERSION"]
+          today      = datetime.date.today().isoformat()
 
           # ── Fetch existing manifest from HuggingFace ──────────────
           manifest = {
@@ -830,36 +843,48 @@ jobs:
               )
               with open(path) as f:
                   existing = json.load(f)
-              # Preserve existing distributions
               manifest["distributions"] = existing.get("distributions", {})
               print(f"Loaded existing manifest with {len(manifest['distributions'])} entries.")
           except Exception as e:
               print(f"No existing manifest found ({e}), creating new one.")
 
-          # ── Add / update this build entry ──────────────────────────
-          manifest["_updated"] = today
-          manifest["distributions"][bundle_key] = {
-              "filename": f"{dist_dir}/{bundle_name}",
-              "comfyui_version": version,
-              "platform": "windows",
-              "gpu": "nvidia",
-              "cuda_version": cuda_ver,
-              "python_version": python_ver,
-              "pytorch_version": pytorch_ver,
-              "node_tier": tier,
-              "node_count": node_count,
-              "nodes": nodes,
-              "sha256": sha256,
-              "size_bytes": size_bytes,
-              "built_at": datetime.datetime.now(datetime.UTC).isoformat() + "Z",
-          }
+          # ── Process each tier's metadata ────────────────────────────
+          metadata_files = glob.glob("metadata/bundle-metadata-*/bundle_metadata.json")
+          print(f"Found {len(metadata_files)} bundle metadata file(s).")
 
-          print(f"Added/updated entry: {bundle_key}")
-          print(f"  File: {dist_dir}/{bundle_name}")
-          print(f"  Size: {size_bytes / (1024**3):.2f} GB")
-          print(f"  SHA-256: {sha256}")
-          print(f"  Python {python_ver}, PyTorch {pytorch_ver}, CUDA {cuda_ver}")
-          print(f"  {node_count} custom nodes ({tier} tier)")
+          for meta_file in metadata_files:
+              with open(meta_file) as f:
+                  meta = json.load(f)
+
+              tier = meta["node_tier"]
+              bundle_key = f"{version}_nvidia_{tier}"
+              node_count = int(meta.get("node_count", "0"))
+              node_list_raw = meta.get("node_list", "[]")
+              try:
+                  nodes = json.loads(node_list_raw)
+              except (json.JSONDecodeError, TypeError):
+                  nodes = []
+
+              manifest["_updated"] = today
+              manifest["distributions"][bundle_key] = {
+                  "filename": f"{dist_dir}/{meta['bundle_name']}",
+                  "comfyui_version": version,
+                  "platform": "windows",
+                  "gpu": "nvidia",
+                  "cuda_version": meta["cuda_version"],
+                  "python_version": meta["python_version"],
+                  "pytorch_version": meta["pytorch_version"],
+                  "node_tier": tier,
+                  "node_count": node_count,
+                  "nodes": nodes,
+                  "sha256": meta["bundle_sha256"],
+                  "size_bytes": int(meta["bundle_size"]),
+                  "built_at": datetime.datetime.now(datetime.UTC).isoformat() + "Z",
+              }
+
+              print(f"Added/updated: {bundle_key}")
+              print(f"  File: {dist_dir}/{meta['bundle_name']}")
+              print(f"  {node_count} nodes ({tier} tier)")
 
           # ── Write to temp file ─────────────────────────────────────
           manifest_path = os.path.join(tempfile.gettempdir(), manifest_name)
@@ -867,13 +892,15 @@ jobs:
               json.dump(manifest, f, indent=2)
 
           # ── Upload to HuggingFace ──────────────────────────────────
+          bundle_keys = [k for k in manifest["distributions"] if k.startswith(version)]
+          commit_msg = f"CI: Update manifest — {', '.join(bundle_keys)}"
           print(f"\nUploading manifest to HuggingFace ({hf_repo})...")
           hf_api.upload_file(
               path_or_fileobj=manifest_path,
               path_in_repo=manifest_name,
               repo_id=hf_repo,
               repo_type="model",
-              commit_message=f"CI: Update distributions manifest — {bundle_key}",
+              commit_message=commit_msg,
           )
           print("[OK] Manifest uploaded to HuggingFace!")
 
@@ -888,7 +915,7 @@ jobs:
                   path_in_repo=manifest_name,
                   repo_id=ms_repo,
                   repo_type="dataset",
-                  commit_message=f"CI: Update distributions manifest — {bundle_key}",
+                  commit_message=commit_msg,
               )
               print("[OK] Manifest uploaded to ModelScope!")
           except Exception as e:
