@@ -326,6 +326,7 @@ jobs:
           echo "node_count=$nodeCount" >> $env:GITHUB_OUTPUT
           echo "node_list=$nodeListJson" >> $env:GITHUB_OUTPUT
           Write-Host "Installed $nodeCount custom nodes."
+          exit 0
 
       # ── SageAttention wheels ──────────────────────────────────────
       - name: Install SageAttention wheels
