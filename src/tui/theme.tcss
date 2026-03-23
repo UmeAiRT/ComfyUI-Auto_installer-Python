@@ -1,30 +1,64 @@
-/* UmeAiRT ComfyUI TUI Theme
- * Deep purple + cyan palette for AI artists
+/* UmeAiRT ComfyUI TUI Theme — Catppuccin Mocha
+ *
+ * Base:    #1e1e2e (crust → surface)
+ * Text:    #cdd6f4
+ * Accent:  #cba6f7 (mauve)
+ * Success: #a6e3a1 (green)
+ * Error:   #f38ba8 (red)
+ * Blue:    #89b4fa
+ * Teal:    #94e2d5
+ * Peach:   #fab387
  */
+
+/* ── App-level design tokens ────────────────────────────────────── */
+$catppuccin-base:    #1e1e2e;
+$catppuccin-mantle:  #181825;
+$catppuccin-crust:   #11111b;
+$catppuccin-surface0:#313244;
+$catppuccin-surface1:#45475a;
+$catppuccin-surface2:#585b70;
+$catppuccin-overlay0:#6c7086;
+$catppuccin-text:    #cdd6f4;
+$catppuccin-subtext: #a6adc8;
+$catppuccin-mauve:   #cba6f7;
+$catppuccin-blue:    #89b4fa;
+$catppuccin-teal:    #94e2d5;
+$catppuccin-green:   #a6e3a1;
+$catppuccin-yellow:  #f9e2af;
+$catppuccin-peach:   #fab387;
+$catppuccin-red:     #f38ba8;
+$catppuccin-pink:    #f5c2e7;
+$catppuccin-lavender:#b4befe;
 
 /* ── Global ─────────────────────────────────────────────────────── */
 Screen {
-    background: $surface;
+    background: $catppuccin-base;
+    color: $catppuccin-text;
 }
 
 /* ── Header / Footer ────────────────────────────────────────────── */
 Header {
-    background: $primary-darken-3;
-    color: $text;
+    background: $catppuccin-crust;
+    color: $catppuccin-mauve;
     dock: top;
     height: 1;
 }
 
 Footer {
-    background: $primary-darken-3;
+    background: $catppuccin-crust;
+    color: $catppuccin-subtext;
+}
+
+FooterKey {
+    background: $catppuccin-crust;
+    color: $catppuccin-mauve;
 }
 
 /* ── Home Screen ────────────────────────────────────────────────── */
 #home-container {
-    layout: vertical;
-    align: center middle;
     width: 100%;
     height: 100%;
+    align: center middle;
 }
 
 #logo-panel {
@@ -34,8 +68,9 @@ Footer {
     text-align: center;
     padding: 1 2;
     margin: 1 0;
-    border: heavy $accent;
-    background: $primary-darken-2;
+    border: heavy $catppuccin-mauve;
+    background: $catppuccin-mantle;
+    color: $catppuccin-lavender;
 }
 
 #system-info-bar {
@@ -44,7 +79,7 @@ Footer {
     content-align: center middle;
     text-align: center;
     margin: 0 0 1 0;
-    color: $text-muted;
+    color: $catppuccin-subtext;
 }
 
 #menu-container {
@@ -53,51 +88,60 @@ Footer {
     align: center middle;
 }
 
+/* ── Menu Buttons ───────────────────────────────────────────────── */
 .menu-button {
     width: 60;
     height: 3;
     margin: 0 2 0 2;
     content-align: center middle;
     text-align: center;
-    background: $primary-darken-1;
-    color: $text;
-    border: tall $primary-lighten-1;
+    background: $catppuccin-surface0;
+    color: $catppuccin-text;
+    border: tall $catppuccin-surface1;
 }
 
 .menu-button:hover {
-    background: $accent;
-    color: $text;
-    border: tall $accent-lighten-1;
+    background: $catppuccin-surface1;
+    color: $catppuccin-text;
+    border: tall $catppuccin-mauve;
 }
 
 .menu-button:focus {
-    background: $accent;
-    color: $text;
-    border: tall $accent-lighten-2;
+    background: $catppuccin-surface1;
+    color: $catppuccin-text;
+    border: tall $catppuccin-mauve;
     text-style: bold;
 }
 
 .menu-button.-primary {
-    background: $success-darken-1;
-    border: tall $success;
+    background: $catppuccin-green 15%;
+    color: $catppuccin-green;
+    border: tall $catppuccin-green 50%;
 }
 
 .menu-button.-primary:hover {
-    background: $success;
+    background: $catppuccin-green 25%;
 }
 
 .menu-button.-primary:focus {
-    background: $success;
-    border: tall $success-lighten-1;
+    background: $catppuccin-green 25%;
+    border: tall $catppuccin-green;
+    text-style: bold;
 }
 
 .menu-button.-danger {
-    background: $error-darken-2;
-    border: tall $error-darken-1;
+    background: $catppuccin-red 10%;
+    color: $catppuccin-red;
+    border: tall $catppuccin-red 40%;
 }
 
 .menu-button.-danger:hover {
-    background: $error-darken-1;
+    background: $catppuccin-red 20%;
+}
+
+.menu-button.-danger:focus {
+    background: $catppuccin-red 20%;
+    border: tall $catppuccin-red;
 }
 
 /* ── Settings Screen ────────────────────────────────────────────── */
@@ -112,26 +156,17 @@ Footer {
     width: 70;
     height: auto;
     padding: 1 2;
-    border: heavy $accent;
-    background: $primary-darken-2;
+    border: heavy $catppuccin-mauve;
+    background: $catppuccin-mantle;
 }
 
-.setting-row {
-    layout: horizontal;
-    height: 3;
-    margin: 0 1;
+Select {
+    width: 100%;
+    margin: 0 0 1 0;
 }
 
-.setting-label {
-    width: 1fr;
-    content-align: left middle;
-    padding: 0 1;
-}
-
-.setting-value {
-    width: 1fr;
-    content-align: right middle;
-    padding: 0 1;
+Switch {
+    margin: 0 0 1 0;
 }
 
 /* ── Info Screen ────────────────────────────────────────────────── */
@@ -146,8 +181,8 @@ Footer {
     width: 70;
     height: auto;
     padding: 1 2;
-    border: heavy $accent;
-    background: $primary-darken-2;
+    border: heavy $catppuccin-teal;
+    background: $catppuccin-mantle;
 }
 
 /* ── Launch Screen ──────────────────────────────────────────────── */
@@ -162,8 +197,8 @@ Footer {
     width: 70;
     height: auto;
     padding: 1 2;
-    border: heavy $accent;
-    background: $primary-darken-2;
+    border: heavy $catppuccin-green;
+    background: $catppuccin-mantle;
 }
 
 #launch-button {
@@ -172,12 +207,40 @@ Footer {
     margin: 1 0;
     content-align: center middle;
     text-align: center;
-    background: $success;
-    color: $text;
-    border: heavy $success-lighten-1;
+    background: $catppuccin-green 20%;
+    color: $catppuccin-green;
+    border: heavy $catppuccin-green;
     text-style: bold;
 }
 
 #launch-button:hover {
-    background: $success-lighten-1;
+    background: $catppuccin-green 30%;
+}
+
+/* ── Generic buttons ────────────────────────────────────────────── */
+Button {
+    background: $catppuccin-surface0;
+    color: $catppuccin-text;
+    border: tall $catppuccin-surface1;
+}
+
+Button:hover {
+    background: $catppuccin-surface1;
+    border: tall $catppuccin-mauve;
+}
+
+Button:focus {
+    background: $catppuccin-surface1;
+    border: tall $catppuccin-mauve;
+    text-style: bold;
+}
+
+Button.-primary {
+    background: $catppuccin-mauve 20%;
+    color: $catppuccin-mauve;
+    border: tall $catppuccin-mauve 50%;
+}
+
+Button.-primary:hover {
+    background: $catppuccin-mauve 30%;
 }
