@@ -1,0 +1,544 @@
+# Build a pre-configured portable ComfyUI bundle for Windows.
+# Downloads the official Comfy-Org portable release, applies UmeAiRT
+# customizations (custom nodes, optimizations, launchers, settings),
+# recompresses, and publishes to HuggingFace + ModelScope.
+#
+# Trigger: schedule (polls for new ComfyUI releases) or manual dispatch.
+name: Build Portable UmeAiRT-ComfyUI Bundle
+
+on:
+  schedule:
+    # Poll once daily for new ComfyUI releases
+    - cron: '0 0 * * *'
+  workflow_dispatch:
+    inputs:
+      comfyui_version:
+        description: 'ComfyUI release tag (e.g. v0.18.0). Empty = latest.'
+        default: ''
+        required: false
+      force_rebuild:
+        description: 'Force rebuild even if version unchanged'
+        type: boolean
+        default: false
+      node_tier:
+        description: 'Custom nodes tier'
+        type: choice
+        options:
+          - umeairt
+          - full
+          - minimal
+        default: umeairt
+
+env:
+  HF_REPO: UmeAiRT/ComfyUI-Auto-Installer-Assets
+  MS_REPO: UmeAiRT/ComfyUI-Auto-Installer-Assets
+  MS_ENDPOINT: "https://www.modelscope.ai"
+  DIST_DIR: distributions
+  COMFYUI_REPO: Comfy-Org/ComfyUI
+
+jobs:
+  # ---------------------------------------------------------------------------
+  # Job 1: Check if a new ComfyUI release is available
+  # ---------------------------------------------------------------------------
+  check-release:
+    name: "Check for new ComfyUI release"
+    runs-on: ubuntu-latest
+    outputs:
+      should_build: ${{ steps.check.outputs.should_build }}
+      version: ${{ steps.check.outputs.version }}
+      download_url: ${{ steps.check.outputs.download_url }}
+      node_tier: ${{ steps.check.outputs.node_tier }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check latest ComfyUI release
+        id: check
+        env:
+          GH_TOKEN: ${{ github.token }}
+          FORCE_REBUILD: ${{ github.event.inputs.force_rebuild || 'false' }}
+          INPUT_VERSION: ${{ github.event.inputs.comfyui_version || '' }}
+          INPUT_TIER: ${{ github.event.inputs.node_tier || 'umeairt' }}
+        run: |
+          echo "node_tier=$INPUT_TIER" >> "$GITHUB_OUTPUT"
+
+          # Get the target version (input override or latest release)
+          if [ -n "$INPUT_VERSION" ]; then
+            VERSION="$INPUT_VERSION"
+            echo "Using manually specified version: $VERSION"
+          else
+            VERSION=$(gh api repos/${{ env.COMFYUI_REPO }}/releases/latest --jq '.tag_name')
+            echo "Latest ComfyUI release: $VERSION"
+          fi
+
+          # Get download URL for the NVIDIA portable
+          DOWNLOAD_URL=$(gh api repos/${{ env.COMFYUI_REPO }}/releases/latest --jq \
+            '.assets[] | select(.name == "ComfyUI_windows_portable_nvidia.7z") | .browser_download_url')
+
+          if [ -z "$DOWNLOAD_URL" ]; then
+            echo "::error::Could not find ComfyUI_windows_portable_nvidia.7z in release assets"
+            echo "should_build=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          echo "Download URL: $DOWNLOAD_URL"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "download_url=$DOWNLOAD_URL" >> "$GITHUB_OUTPUT"
+
+          # Compare with last built version
+          LAST_VERSION="none"
+          if [ -f .github/portable-bundle-version.txt ]; then
+            LAST_VERSION=$(cat .github/portable-bundle-version.txt | tr -d '[:space:]')
+          fi
+
+          echo "Last built version: $LAST_VERSION"
+
+          if [ "$FORCE_REBUILD" = "true" ] || [ "$VERSION" != "$LAST_VERSION" ]; then
+            echo "should_build=true" >> "$GITHUB_OUTPUT"
+            echo "✅ Will build: version=$VERSION (last=$LAST_VERSION, force=$FORCE_REBUILD)"
+          else
+            echo "should_build=false" >> "$GITHUB_OUTPUT"
+            echo "⏭️ Skip: version $VERSION already built"
+          fi
+
+  # ---------------------------------------------------------------------------
+  # Job 2: Build the portable bundle
+  # ---------------------------------------------------------------------------
+  build-bundle:
+    name: "Build UmeAiRT Portable Bundle"
+    needs: check-release
+    if: needs.check-release.outputs.should_build == 'true'
+    runs-on: windows-latest
+    env:
+      COMFYUI_VERSION: ${{ needs.check-release.outputs.version }}
+      DOWNLOAD_URL: ${{ needs.check-release.outputs.download_url }}
+      NODE_TIER: ${{ needs.check-release.outputs.node_tier }}
+      PORTABLE_ROOT: C:\portable
+      PORTABLE: C:\portable\ComfyUI_windows_portable
+    steps:
+      - name: Checkout installer repo
+        uses: actions/checkout@v4
+        with:
+          path: installer
+
+      - name: Download ComfyUI Portable
+        shell: pwsh
+        run: |
+          Write-Host "Downloading ComfyUI portable ($env:COMFYUI_VERSION)..."
+          Write-Host "URL: $env:DOWNLOAD_URL"
+          Invoke-WebRequest -Uri $env:DOWNLOAD_URL -OutFile "$env:PORTABLE_ROOT\comfyui_portable.7z" -UseBasicParsing
+          Write-Host "Download complete. Size: $((Get-Item "$env:PORTABLE_ROOT\comfyui_portable.7z").Length / 1MB) MB"
+
+      - name: Extract portable
+        shell: pwsh
+        run: |
+          Write-Host "Extracting..."
+          7z x "$env:PORTABLE_ROOT\comfyui_portable.7z" -o"$env:PORTABLE_ROOT" -y
+          Remove-Item "$env:PORTABLE_ROOT\comfyui_portable.7z" -Force
+          Write-Host "Contents of portable root:"
+          Get-ChildItem $env:PORTABLE -Name
+
+      - name: Verify portable structure
+        shell: pwsh
+        run: |
+          $python = "$env:PORTABLE\python_embeded\python.exe"
+          $comfy = "$env:PORTABLE\ComfyUI"
+
+          if (-not (Test-Path $python)) { throw "python_embeded\python.exe not found!" }
+          if (-not (Test-Path $comfy)) { throw "ComfyUI\ directory not found!" }
+
+          # Show Python and PyTorch info
+          & $python -c "import sys; print(f'Python {sys.version}')"
+          & $python -c "import torch; print(f'PyTorch {torch.__version__}, CUDA {torch.version.cuda}')"
+
+      # ── Provisioning ──────────────────────────────────────────────
+      - name: Provision configuration files
+        shell: pwsh
+        run: |
+          $scriptsDir = "$env:PORTABLE\scripts"
+          New-Item -ItemType Directory -Force -Path $scriptsDir | Out-Null
+
+          # Copy essential configs from installer repo
+          $configs = @(
+            "dependencies.json",
+            "custom_nodes.json",
+            "nunchaku_versions.json"
+          )
+          foreach ($f in $configs) {
+            $src = "installer\scripts\$f"
+            if (Test-Path $src) {
+              Copy-Item $src "$scriptsDir\$f"
+              Write-Host "  ✓ $f"
+            }
+          }
+
+          # Copy ComfyUI settings
+          $settingsDst = "$env:PORTABLE\user\default"
+          New-Item -ItemType Directory -Force -Path $settingsDst | Out-Null
+          $settingsSrc = "installer\scripts\comfy.settings.json"
+          if (Test-Path $settingsSrc) {
+            Copy-Item $settingsSrc "$settingsDst\comfy.settings.json"
+            Write-Host "  ✓ comfy.settings.json -> user\default\"
+          }
+
+          # Mark install type
+          Set-Content -Path "$scriptsDir\install_type" -Value "embedded"
+
+      # ── Standard packages ─────────────────────────────────────────
+      - name: Install standard Python packages
+        shell: pwsh
+        run: |
+          $python = "$env:PORTABLE\python_embeded\python.exe"
+
+          # Install ComfyUI requirements (should mostly be satisfied already)
+          $reqFile = "$env:PORTABLE\ComfyUI\requirements.txt"
+          if (Test-Path $reqFile) {
+            Write-Host "Installing ComfyUI requirements..."
+            & $python -m pip install -r $reqFile --quiet 2>&1 | ForEach-Object { Write-Host "  $_" }
+          }
+
+          # Install additional standard packages from dependencies.json
+          Write-Host "Installing standard packages..."
+          & $python -c @"
+          import json
+          with open('installer/scripts/dependencies.json') as f:
+              deps = json.load(f)
+          pkgs = deps.get('pip_packages', {}).get('standard', [])
+          # Filter out cupy for CI (no GPU) and CUDA-only packages
+          pkgs = [p for p in pkgs if not p.startswith('cupy-cuda')]
+          print(' '.join(pkgs))
+          "@ | ForEach-Object {
+            if ($_ -and $_.Trim()) {
+              $packages = $_.Trim() -split '\s+'
+              Write-Host "  Installing $($packages.Count) packages..."
+              & $python -m pip install @packages --quiet 2>&1 | ForEach-Object { Write-Host "  $_" }
+            }
+          }
+
+      # ── Custom Nodes ──────────────────────────────────────────────
+      - name: Install custom nodes (${{ needs.check-release.outputs.node_tier }})
+        shell: pwsh
+        run: |
+          $python = "$env:PORTABLE\python_embeded\python.exe"
+          $nodesDir = "$env:PORTABLE\ComfyUI\custom_nodes"
+          $tier = $env:NODE_TIER
+
+          Write-Host "Installing custom nodes (tier: $tier)..."
+
+          # Parse custom_nodes.json and filter by tier
+          $manifest = Get-Content "installer\scripts\custom_nodes.json" -Raw | ConvertFrom-Json
+          $tierOrder = @{ "minimal" = 0; "umeairt" = 1; "full" = 2 }
+          $targetLevel = $tierOrder[$tier]
+
+          foreach ($node in $manifest.nodes) {
+            $nodeLevel = $tierOrder[$node.tier]
+            if ($nodeLevel -gt $targetLevel) {
+              continue
+            }
+
+            $nodeName = $node.name
+            $nodeUrl = $node.url
+            $nodePath = if ($node.subfolder) {
+              Join-Path $nodesDir $node.subfolder
+            } else {
+              Join-Path $nodesDir $nodeName
+            }
+
+            if (Test-Path $nodePath) {
+              Write-Host "  ⏭️ $nodeName (already exists)"
+              continue
+            }
+
+            Write-Host "  📦 $nodeName..."
+            try {
+              git clone --depth 1 $nodeUrl $nodePath 2>&1 | Out-Null
+
+              # Install requirements if specified
+              if ($node.requirements) {
+                $reqFile = Join-Path $nodePath $node.requirements
+                if (Test-Path $reqFile) {
+                  & $python -m pip install -r $reqFile --quiet 2>&1 | Out-Null
+                  Write-Host "    ✓ requirements installed"
+                }
+              }
+              Write-Host "    ✓ cloned"
+            } catch {
+              Write-Host "    ⚠️ Failed: $_"
+            }
+          }
+
+          # Provision nunchaku_versions.json
+          $nunchakuSrc = "installer\scripts\nunchaku_versions.json"
+          $nunchakuDst = "$nodesDir\ComfyUI-nunchaku\nunchaku_versions.json"
+          if ((Test-Path $nunchakuSrc) -and (Test-Path (Split-Path $nunchakuDst))) {
+            Copy-Item $nunchakuSrc $nunchakuDst
+            Write-Host "  ✓ nunchaku_versions.json provisioned"
+          }
+
+      # ── SageAttention wheels ──────────────────────────────────────
+      - name: Install SageAttention wheels
+        shell: pwsh
+        continue-on-error: true
+        run: |
+          $python = "$env:PORTABLE\python_embeded\python.exe"
+
+          # Determine Python version tag (e.g. cp313)
+          $pyVer = & $python -c "import sys; print(f'cp{sys.version_info.major}{sys.version_info.minor}')"
+          $wheelKey = "${pyVer}_win"
+
+          Write-Host "Looking for SageAttention wheel: $wheelKey"
+
+          # Download tools_manifest.json to find the right wheel
+          & $python -c @"
+          import urllib.request, json, sys
+          url = 'https://huggingface.co/UmeAiRT/ComfyUI-Auto-Installer-Assets/resolve/main/tools_manifest.json'
+          try:
+              data = json.loads(urllib.request.urlopen(url, timeout=30).read())
+              sa2 = data.get('whl', {}).get('sageattention', {})
+              files = sa2.get('files', {})
+              entry = files.get('$wheelKey')
+              if entry:
+                  filename = entry['filename']
+                  dl_url = f'https://huggingface.co/UmeAiRT/ComfyUI-Auto-Installer-Assets/resolve/main/{filename}'
+                  print(f'WHEEL_URL={dl_url}')
+              else:
+                  print(f'No wheel found for key: $wheelKey', file=sys.stderr)
+                  print(f'Available keys: {list(files.keys())}', file=sys.stderr)
+          except Exception as e:
+              print(f'Failed to fetch manifest: {e}', file=sys.stderr)
+          "@ | ForEach-Object {
+            if ($_ -match "^WHEEL_URL=(.+)$") {
+              $wheelUrl = $matches[1]
+              Write-Host "Downloading SageAttention from: $wheelUrl"
+              $wheelFile = "$env:TEMP\sageattention.whl"
+              Invoke-WebRequest -Uri $wheelUrl -OutFile $wheelFile -UseBasicParsing
+              & $python -m pip install $wheelFile --quiet
+              Remove-Item $wheelFile -Force -ErrorAction SilentlyContinue
+              Write-Host "  ✓ SageAttention installed"
+            }
+          }
+
+      # ── UmeAiRT Launchers ─────────────────────────────────────────
+      - name: Generate UmeAiRT launchers
+        shell: pwsh
+        run: |
+          # Performance launcher
+          $perfContent = @"
+          @echo off
+          setlocal EnableDelayedExpansion
+          chcp 65001 >nul 2>nul
+          set "PYTHONPATH="
+          set "PYTHONNOUSERSITE=1"
+          set "PYTHONUTF8=1"
+
+          :: ============================================================================
+          :: UmeAiRT-Start-ComfyUI.bat - Performance Mode
+          :: Generated by ComfyUI Auto-Installer (Portable Bundle)
+          :: ============================================================================
+
+          set InstallPath=%~dp0
+          if "%InstallPath:~-1%"=="\" set "InstallPath=%InstallPath:~0,-1%"
+
+          :: --- Network Mode (saved after first choice) ---
+          set "LISTEN_CFG=%InstallPath%\scripts\listen_address"
+          set "LISTEN_ADDR=127.0.0.1"
+
+          if exist "%LISTEN_CFG%" set /p LISTEN_ADDR=<"%LISTEN_CFG%"
+          if exist "%LISTEN_CFG%" goto :listen_done
+          echo.
+          echo   === Network Access Mode ===
+          echo.
+          echo   1. Local  ^(127.0.0.1^)  - PC local only ^(default^)
+          echo   2. Open   ^(0.0.0.0^)   - RunPod / cloud / LAN
+          echo.
+          set /p "NETWORK_CHOICE=  Select [1/2] (default: 1): "
+          if "!NETWORK_CHOICE!"=="2" set "LISTEN_ADDR=0.0.0.0"
+          echo !LISTEN_ADDR!> "%LISTEN_CFG%"
+          echo   [INFO] Saved to %LISTEN_CFG%
+          echo   [INFO] To change later, delete this file and relaunch.
+          echo.
+          :listen_done
+
+          :: --- Launch ComfyUI ---
+          echo [INFO] Starting ComfyUI (Performance Mode) on %LISTEN_ADDR%...
+          cd /d "%InstallPath%"
+          .\python_embeded\python.exe -s ComfyUI\main.py --windows-standalone-build --use-sage-attention --auto-launch --listen %LISTEN_ADDR%
+
+          pause
+          "@
+
+          $perfContent | Set-Content -Path "$env:PORTABLE\UmeAiRT-Start-ComfyUI.bat" -Encoding UTF8
+          Write-Host "  ✓ UmeAiRT-Start-ComfyUI.bat"
+
+          # LowVRAM launcher
+          $lowvramContent = @"
+          @echo off
+          setlocal EnableDelayedExpansion
+          chcp 65001 >nul 2>nul
+          set "PYTHONPATH="
+          set "PYTHONNOUSERSITE=1"
+          set "PYTHONUTF8=1"
+
+          :: ============================================================================
+          :: UmeAiRT-Start-ComfyUI_LowVRAM.bat - Low VRAM / Stability Mode
+          :: Generated by ComfyUI Auto-Installer (Portable Bundle)
+          :: ============================================================================
+
+          set InstallPath=%~dp0
+          if "%InstallPath:~-1%"=="\" set "InstallPath=%InstallPath:~0,-1%"
+
+          set "LISTEN_CFG=%InstallPath%\scripts\listen_address"
+          set "LISTEN_ADDR=127.0.0.1"
+          if exist "%LISTEN_CFG%" set /p LISTEN_ADDR=<"%LISTEN_CFG%"
+          if exist "%LISTEN_CFG%" goto :listen_done
+          echo.
+          echo   === Network Access Mode ===
+          echo.
+          echo   1. Local  ^(127.0.0.1^)  - PC local only ^(default^)
+          echo   2. Open   ^(0.0.0.0^)   - RunPod / cloud / LAN
+          echo.
+          set /p "NETWORK_CHOICE=  Select [1/2] (default: 1): "
+          if "!NETWORK_CHOICE!"=="2" set "LISTEN_ADDR=0.0.0.0"
+          echo !LISTEN_ADDR!> "%LISTEN_CFG%"
+          :listen_done
+
+          echo [INFO] Starting ComfyUI (Low VRAM Mode) on %LISTEN_ADDR%...
+          cd /d "%InstallPath%"
+          .\python_embeded\python.exe -s ComfyUI\main.py --windows-standalone-build --use-sage-attention --auto-launch --disable-smart-memory --lowvram --fp8_e4m3fn-text-enc --listen %LISTEN_ADDR%
+
+          pause
+          "@
+
+          $lowvramContent | Set-Content -Path "$env:PORTABLE\UmeAiRT-Start-ComfyUI_LowVRAM.bat" -Encoding UTF8
+          Write-Host "  ✓ UmeAiRT-Start-ComfyUI_LowVRAM.bat"
+
+      # ── Cleanup ───────────────────────────────────────────────────
+      - name: Cleanup before packaging
+        shell: pwsh
+        run: |
+          Write-Host "Cleaning up..."
+
+          # Remove .git directories from custom nodes (save space)
+          Get-ChildItem "$env:PORTABLE\ComfyUI\custom_nodes" -Directory -Recurse -Filter ".git" |
+            ForEach-Object {
+              Remove-Item $_.FullName -Recurse -Force -ErrorAction SilentlyContinue
+              Write-Host "  Removed $($_.FullName)"
+            }
+
+          # Remove __pycache__ directories
+          Get-ChildItem $env:PORTABLE -Directory -Recurse -Filter "__pycache__" |
+            ForEach-Object {
+              Remove-Item $_.FullName -Recurse -Force -ErrorAction SilentlyContinue
+            }
+          Write-Host "  ✓ __pycache__ removed"
+
+          # Remove pip cache
+          $pipCache = "$env:PORTABLE\python_embeded\pip"
+          if (Test-Path $pipCache) {
+            Remove-Item $pipCache -Recurse -Force -ErrorAction SilentlyContinue
+          }
+
+          # Remove installer checkout (not part of the bundle)
+          # (it's in a separate path, not inside $PORTABLE)
+
+          # Show final size
+          $size = (Get-ChildItem $env:PORTABLE -Recurse -File | Measure-Object -Property Length -Sum).Sum
+          Write-Host "Bundle size before compression: $([math]::Round($size / 1GB, 2)) GB"
+
+      # ── Compress ──────────────────────────────────────────────────
+      - name: Compress bundle
+        shell: pwsh
+        run: |
+          $bundleName = "UmeAiRT-ComfyUI-Portable-Win-NVIDIA-$env:COMFYUI_VERSION-$env:NODE_TIER.7z"
+          Write-Host "Compressing to $bundleName..."
+          7z a -t7z -mx=7 -mmt=on "C:\$bundleName" "$env:PORTABLE\*"
+          $size = (Get-Item "C:\$bundleName").Length
+          Write-Host "Compressed size: $([math]::Round($size / 1GB, 2)) GB"
+
+          echo "BUNDLE_NAME=$bundleName" >> $env:GITHUB_ENV
+          echo "BUNDLE_PATH=C:\$bundleName" >> $env:GITHUB_ENV
+
+      # ── Upload as GitHub artifact ─────────────────────────────────
+      - name: Upload bundle as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: portable-bundle
+          path: ${{ env.BUNDLE_PATH }}
+          retention-days: 7
+
+      # ── Upload to HuggingFace ─────────────────────────────────────
+      - name: Upload to HuggingFace
+        shell: pwsh
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+        run: |
+          $python = "$env:PORTABLE\python_embeded\python.exe"
+          & $python -c @"
+          from huggingface_hub import HfApi
+          import os
+          api = HfApi()
+          bundle = os.environ['BUNDLE_PATH']
+          name = os.environ['BUNDLE_NAME']
+          repo = os.environ.get('HF_REPO', 'UmeAiRT/ComfyUI-Auto-Installer-Assets')
+          dist_dir = os.environ.get('DIST_DIR', 'distributions')
+          print(f'Uploading {name} to HuggingFace ({repo})...')
+          api.upload_file(
+              path_or_fileobj=bundle,
+              path_in_repo=f'{dist_dir}/{name}',
+              repo_id=repo,
+              repo_type='model',
+          )
+          print('✅ Uploaded to HuggingFace!')
+          "@
+
+      # ── Upload to ModelScope ──────────────────────────────────────
+      - name: Upload to ModelScope
+        continue-on-error: true
+        shell: pwsh
+        env:
+          MODELSCOPE_API_TOKEN: ${{ secrets.MODELSCOPE_API_TOKEN }}
+        run: |
+          $python = "$env:PORTABLE\python_embeded\python.exe"
+          & $python -m pip install modelscope --quiet
+          & $python -c @"
+          from modelscope.hub.api import HubApi
+          import os
+          api = HubApi()
+          api.login(os.environ['MODELSCOPE_API_TOKEN'])
+          bundle = os.environ['BUNDLE_PATH']
+          name = os.environ['BUNDLE_NAME']
+          repo = os.environ.get('MS_REPO', 'UmeAiRT/ComfyUI-Auto-Installer-Assets')
+          dist_dir = os.environ.get('DIST_DIR', 'distributions')
+          endpoint = os.environ.get('MS_ENDPOINT', 'https://www.modelscope.ai')
+          print(f'Uploading {name} to ModelScope ({repo})...')
+          api.upload_file(
+              path_or_fileobj=bundle,
+              path_in_repo=f'{dist_dir}/{name}',
+              repo_id=repo,
+              repo_type='dataset',
+              endpoint=endpoint,
+              commit_message=f'CI: Upload portable bundle {name}',
+          )
+          print('✅ Uploaded to ModelScope!')
+          "@
+
+  # ---------------------------------------------------------------------------
+  # Job 3: Update version tracker
+  # ---------------------------------------------------------------------------
+  update-version:
+    name: "Update version tracker"
+    needs: [check-release, build-bundle]
+    if: needs.build-bundle.result == 'success'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Update portable-bundle-version.txt
+        run: |
+          echo "${{ needs.check-release.outputs.version }}" > .github/portable-bundle-version.txt
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add .github/portable-bundle-version.txt
+          git commit -m "ci: update portable bundle version to ${{ needs.check-release.outputs.version }}"
+          git push
