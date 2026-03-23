@@ -24,7 +24,7 @@ Cross-platform Python CLI to fully automate the installation, update, and config
 - **Junction Architecture** — User data (models, outputs) persists independently from ComfyUI updates
 - **Smart Update** — One command to update ComfyUI core, all bundled nodes, and Python dependencies
 - **Model Security Scanner** — Detects malicious pickle code in `.ckpt`/`.pt` model files using `picklescan`
-- **Cross-Platform Launchers** — Generated `.bat`/`.sh` scripts (Performance, LowVRAM, Update, Download)
+- **Cross-Platform Launchers** — Generated `.bat`/`.sh` scripts (Performance, LowVRAM, Manager TUI)
 - **Verbose Mode** — Clean output by default, detailed logging with `-v` flag
 
 ## 📋 Prerequisites
@@ -109,13 +109,14 @@ Four launcher scripts are generated in your install directory:
 |--------|-------------|
 | `UmeAiRT-Start-ComfyUI.bat/.sh` | Launch ComfyUI (Performance mode with SageAttention) |
 | `UmeAiRT-Start-ComfyUI_LowVRAM.bat/.sh` | Launch with `--lowvram --fp8` for ≤8 GB VRAM GPUs |
-| `UmeAiRT-Download-Models.bat/.sh` | Reopen the model download menu |
-| `UmeAiRT-Update.bat/.sh` | Update ComfyUI, custom nodes, and dependencies |
+| `UmeAiRT-Manager.bat/.sh` | Open the TUI manager (update, download models, reinstall, settings) |
 
 ## 🛠️ CLI Commands
 
 ```bash
+umeairt-comfyui-installer                    # TUI manager (launch, update, download, settings)
 umeairt-comfyui-installer install            # Full installation
+umeairt-comfyui-installer install --reinstall # Clean reinstall (preserves models/output)
 umeairt-comfyui-installer update             # Update ComfyUI + nodes + deps
 umeairt-comfyui-installer download-models    # Interactive model downloads
 umeairt-comfyui-installer scan-models        # Scan models for malicious pickle code
@@ -162,8 +163,8 @@ install_path/
 ├── logs/                    # Install and update logs
 ├── scripts/                 # Venv, config files, install metadata
 ├── UmeAiRT-Start-ComfyUI.bat
-├── UmeAiRT-Update.bat
-└── UmeAiRT-Download-Models.bat
+├── UmeAiRT-Start-ComfyUI_LowVRAM.bat
+└── UmeAiRT-Manager.bat
 ```
 
 ### Model Catalog (v3)

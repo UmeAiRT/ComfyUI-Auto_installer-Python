@@ -26,7 +26,6 @@ class UmeAiRTApp(App):
     BINDINGS = [
         Binding("q", "quit", "Quit", show=True),
         Binding("escape", "back", "Back", show=True),
-        Binding("f2", "settings", "Settings", show=True),
     ]
 
     def __init__(self, install_path: Path | None = None) -> None:
@@ -44,10 +43,6 @@ class UmeAiRTApp(App):
         if len(self.screen_stack) > 1:
             self.pop_screen()
 
-    def action_settings(self) -> None:
-        """Open settings screen."""
-        from src.tui.screens.settings import SettingsScreen
-        self.push_screen(SettingsScreen(self.install_path, self.user_settings))
 
 
 def run_tui(install_path: Path | None = None) -> None:

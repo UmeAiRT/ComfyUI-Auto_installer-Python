@@ -32,8 +32,14 @@ pip install -e .
 # Run tests
 pytest tests/ -q
 
-# Run the installer
+# Launch the TUI manager
+umeairt-comfyui-installer
+
+# Run the installer (CLI)
 umeairt-comfyui-installer install --path C:\path\to\install --type venv
+
+# Clean reinstall (preserves models/output)
+umeairt-comfyui-installer install --reinstall --path C:\path\to\install
 
 # Run with verbose output
 umeairt-comfyui-installer install --path C:\path\to\install -v
@@ -158,12 +164,21 @@ The installer supports **NVIDIA** (`cu130`/`cu128`), **AMD** (`rocm71` on Linux,
 
 | Path | Purpose |
 |------|---------|
-| `src/cli.py` | Typer CLI entry point (install, update, download-models, scan-models, info) |
+| `src/cli.py` | Typer CLI entry point (install, update, download-models, scan-models, info) + TUI launcher |
 | `src/config.py` | Pydantic models for `dependencies.json` and user settings |
-| `src/installer/phase1.py` | Phase 1: system setup, Python, environment |
-| `src/installer/phase2.py` | Phase 2: ComfyUI, nodes, packages, launchers |
+| `src/settings.py` | `UserSettings` model — persistent user preferences (listen, VRAM, sage) |
+| `src/installer/install.py` | Unified 13-step installation orchestrator |
+| `src/installer/finalize.py` | Launchers, Manager script, CLI install, model downloads |
 | `src/installer/updater.py` | Update logic (git pull + node updates) |
 | `src/installer/nodes.py` | Custom node management (additive manifest) |
+| `src/installer/templates/` | `.bat`/`.sh` launcher and tool templates |
+| `src/tui/app.py` | Textual TUI application entry point |
+| `src/tui/theme.tcss` | TUI stylesheet (Catppuccin Mocha theme) |
+| `src/tui/screens/home.py` | Home menu screen (launch, update, download, reinstall, etc.) |
+| `src/tui/screens/launch.py` | Launch screen — VRAM mode, listen address, sage, auto-browser |
+| `src/tui/screens/download.py` | Model downloader TUI screen |
+| `src/tui/screens/install.py` | Installation screen |
+| `src/tui/screens/info.py` | System info display |
 | `src/utils/logging.py` | `InstallerLogger` with step counter and verbose mode |
 | `src/utils/commands.py` | `run_and_log()`, `check_command_exists()` |
 | `src/utils/download.py` | Download with aria2c/urllib fallback |

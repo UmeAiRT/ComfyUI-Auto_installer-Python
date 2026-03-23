@@ -128,7 +128,7 @@ class TestCreateLaunchers:
             ):
                 create_launchers(tmp_path, log)
                 assert mock_bat.call_count == 2  # Performance + LowVRAM
-                assert mock_tool.call_count == 2  # Download + Update
+                assert mock_tool.call_count == 1  # Manager
 
     def test_creates_sh_launchers_on_linux(self, tmp_path: Path) -> None:
         """Should create .sh files on Linux."""
@@ -144,4 +144,4 @@ class TestCreateLaunchers:
             ):
                 create_launchers(tmp_path, log)
                 assert mock_sh.call_count == 2
-                assert mock_tool.call_count == 2
+                assert mock_tool.call_count == 1  # Manager

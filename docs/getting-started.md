@@ -50,11 +50,10 @@ See [Docker](docker.md) for storage options and customization.
 
 ## Post-Installation
 
-Four launcher scripts are generated:
+Three launcher scripts are generated:
 
 | Script | Description |
 |--------|-------------|
 | `UmeAiRT-Start-ComfyUI` | Launch ComfyUI (Performance mode) |
 | `UmeAiRT-Start-ComfyUI_LowVRAM` | Launch with `--lowvram --fp8` for ≤8 GB VRAM |
-| `UmeAiRT-Download-Models` | Reopen the model download menu |
-| `UmeAiRT-Update` | Update ComfyUI, custom nodes, and dependencies |
+| `UmeAiRT-Manager` | Open the TUI manager (update, download, reinstall, settings) |

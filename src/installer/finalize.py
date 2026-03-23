@@ -4,7 +4,7 @@ Installation finalization — Steps 11-12.
 Post-install tasks that wrap up the installation:
 
 - **CLI** (Step 11): installs ``comfyui-installer`` into the venv so
-  generated tool scripts (Update, Download-Models) work.
+  the generated ``UmeAiRT-Manager`` script can launch the TUI.
 - **Settings** (Step 11): copies custom ComfyUI UI settings from
   the local ``scripts/comfy.settings.json``.
 - **Launchers** (Step 11): generates ``.bat`` / ``.sh`` launcher and

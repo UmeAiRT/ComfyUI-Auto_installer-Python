@@ -91,8 +91,8 @@ def test_dependencies_parsing_optimizations():
     assert "linux" in flash.requires
 
 
-def test_launcher_has_network_prompt(tmp_path):
-    """Launchers should contain the interactive network mode prompt."""
+def test_launcher_has_listen_address(tmp_path):
+    """Launchers should read listen address from config and use LISTEN_ADDR variable."""
     from src.installer.finalize import create_launchers
     from src.utils.logging import setup_logger
 
@@ -113,12 +113,11 @@ def test_launcher_has_network_prompt(tmp_path):
     assert launcher.exists(), f"Launcher not created: {launcher}"
     content = launcher.read_text(encoding="utf-8")
 
-    # Should have the interactive prompt
-    assert "127.0.0.1" in content, "Default local address should be in the prompt"
-    assert "0.0.0.0" in content, "Open address should be in the prompt"
+    # Should have listen address config reading (not interactive prompt)
     assert "LISTEN_ADDR" in content, "LISTEN_ADDR variable should be used"
+    assert "listen_address" in content, "Should read from listen_address config file"
 
-    # --listen should NOT be hardcoded in the {args} but appended with the variable
+    # --listen should use the variable, not a hardcoded value
     assert "--listen %LISTEN_ADDR%" in content or '--listen "$LISTEN_ADDR"' in content, \
         "--listen should use the LISTEN_ADDR variable, not a hardcoded value"
 

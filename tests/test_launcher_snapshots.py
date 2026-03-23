@@ -68,31 +68,17 @@ class TestBatLauncher:
 class TestBatTool:
     """Tests for Windows .bat tool script generation."""
 
-    def test_update_tool_calls_update_command(self, tmp_path: Path) -> None:
-        """Update tool should contain the update CLI command."""
+    def test_manager_tool_calls_tui(self, tmp_path: Path) -> None:
+        """Manager tool should contain the umeairt-comfyui-installer command."""
         from src.installer.finalize import _write_bat_tool
 
         log = MagicMock()
         _write_bat_tool(
-            tmp_path, "UmeAiRT-Update", "Updater",
-            'umeairt-comfyui-installer update --path "%InstallPath%"', log,
+            tmp_path, "UmeAiRT-Manager", "UmeAiRT Manager",
+            'umeairt-comfyui-installer', log,
         )
 
-        script = tmp_path / "UmeAiRT-Update.bat"
+        script = tmp_path / "UmeAiRT-Manager.bat"
         assert script.exists()
         content = script.read_text(encoding="utf-8")
-        assert "umeairt-comfyui-installer update" in content
-
-    def test_downloader_tool_calls_download_command(self, tmp_path: Path) -> None:
-        """Downloader tool should contain the download-models CLI command."""
-        from src.installer.finalize import _write_bat_tool
-
-        log = MagicMock()
-        _write_bat_tool(
-            tmp_path, "UmeAiRT-Download-Models", "Model Downloader",
-            'umeairt-comfyui-installer download-models --path "%InstallPath%"', log,
-        )
-
-        script = tmp_path / "UmeAiRT-Download-Models.bat"
-        content = script.read_text(encoding="utf-8")
-        assert "download-models" in content
+        assert "umeairt-comfyui-installer" in content

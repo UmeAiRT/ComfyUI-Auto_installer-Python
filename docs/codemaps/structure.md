@@ -85,11 +85,10 @@ graph TD
 
 ## Generated Launcher Scripts
 
-At install time, `phase2.py` generates these in the install directory:
+At install time, `finalize.py` generates these in the install directory:
 
 | Script | Purpose |
 |--------|---------|
 | `UmeAiRT-Start-ComfyUI.bat/.sh` | Performance mode (SageAttention) |
 | `UmeAiRT-Start-ComfyUI_LowVRAM.bat/.sh` | Low VRAM mode |
-| `UmeAiRT-Download-Models.bat/.sh` | Re-launch model download menu |
-| `UmeAiRT-Update.bat/.sh` | Run the update process |
+| `UmeAiRT-Manager.bat/.sh` | Open the TUI manager |
