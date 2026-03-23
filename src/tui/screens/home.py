@@ -140,7 +140,7 @@ class HomeScreen(Screen):
         self._menu_buttons = [
             "btn-launch", "btn-download", "btn-update",
             "btn-reinstall", "btn-install",
-            "btn-info", "btn-settings", "btn-exit",
+            "btn-info", "btn-exit",
         ]
         yield Button("1 │ 🚀  Launch ComfyUI", id="btn-launch", classes="menu-button -primary")
         yield Button("2 │ ⬇️   Download Models", id="btn-download", classes="menu-button")
@@ -148,18 +148,16 @@ class HomeScreen(Screen):
         yield Button("4 │ ♻️   Reinstall (clean)", id="btn-reinstall", classes="menu-button")
         yield Button("5 │ 🔧  New Installation", id="btn-install", classes="menu-button")
         yield Button("6 │ ℹ️   System Info", id="btn-info", classes="menu-button")
-        yield Button("7 │ ⚙️   Settings", id="btn-settings", classes="menu-button")
-        yield Button("8 │ ❌  Exit", id="btn-exit", classes="menu-button -danger")
+        yield Button("7 │ ❌  Exit", id="btn-exit", classes="menu-button -danger")
 
     def _compose_fresh_menu(self):
         """Menu when ComfyUI is not yet installed."""
         self._menu_buttons = [
-            "btn-install", "btn-info", "btn-settings", "btn-exit",
+            "btn-install", "btn-info", "btn-exit",
         ]
         yield Button("1 │ 🔧  Install ComfyUI", id="btn-install", classes="menu-button -primary")
         yield Button("2 │ ℹ️   System Info", id="btn-info", classes="menu-button")
-        yield Button("3 │ ⚙️   Settings", id="btn-settings", classes="menu-button")
-        yield Button("4 │ ❌  Exit", id="btn-exit", classes="menu-button -danger")
+        yield Button("3 │ ❌  Exit", id="btn-exit", classes="menu-button -danger")
 
     def on_mount(self) -> None:
         """Focus the appropriate button on mount."""
@@ -239,12 +237,6 @@ class HomeScreen(Screen):
         elif button_id == "btn-info":
             from src.tui.screens.info import InfoScreen
             self.app.push_screen(InfoScreen(self.install_path))
-
-        elif button_id == "btn-settings":
-            from src.tui.screens.settings import SettingsScreen
-            self.app.push_screen(
-                SettingsScreen(self.install_path, self.user_settings)
-            )
 
         elif button_id == "btn-download":
             from src.tui.screens.download import DownloadScreen

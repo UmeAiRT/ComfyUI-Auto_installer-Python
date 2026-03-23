@@ -1,20 +1,20 @@
 """
-Launch Screen — Choose VRAM mode and start ComfyUI.
+Launch Screen — Choose VRAM mode, configure options, and start ComfyUI.
 
 Recommends a mode based on detected GPU VRAM.
+Includes listen address, SageAttention, and auto-browser toggles.
 """
 
 from __future__ import annotations
 
-import subprocess
 import sys
 from pathlib import Path
 from typing import TYPE_CHECKING
 
 from textual.binding import Binding
-from textual.containers import Center, Vertical
+from textual.containers import Center, Horizontal, Vertical
 from textual.screen import Screen
-from textual.widgets import Button, Footer, Header, Static
+from textual.widgets import Button, Footer, Header, Select, Static, Switch
 
 if TYPE_CHECKING:
     from textual.app import ComposeResult
@@ -65,10 +65,11 @@ MODES = {
 }
 
 MODE_BUTTONS = ["btn-mode-high", "btn-mode-normal", "btn-mode-low"]
+ALL_BUTTONS = MODE_BUTTONS + ["btn-launch", "btn-back"]
 
 
 class LaunchScreen(Screen):
-    """Choose VRAM mode and launch ComfyUI."""
+    """Choose VRAM mode, configure options, and launch ComfyUI."""
 
     BINDINGS = [
         Binding("escape", "app.back", "Back"),
@@ -106,8 +107,9 @@ class LaunchScreen(Screen):
                 )
 
             with Center():
-                yield Static("\n[b]Choose VRAM mode:[/b]", id="launch-subtitle")
+                yield Static("\n[b]VRAM Mode:[/b]", id="launch-subtitle")
 
+            # VRAM mode buttons
             with Center(id="launch-modes"):
                 for mode_key in ("high", "normal", "low"):
                     mode = MODES[mode_key]
@@ -121,15 +123,48 @@ class LaunchScreen(Screen):
                         classes=classes,
                     )
 
-            # SageAttention toggle info
-            sage = "✅" if self.user_settings.use_sage_attention else "❌"
+            # ── Options ──
             with Center():
                 yield Static(
-                    f"\n[dim]SageAttention: {sage}  •  Listen: {self.user_settings.listen_address}  •  "
-                    f"Change in Settings[/dim]",
-                    id="launch-info",
+                    "\n[b]Options:[/b]",
+                    classes="launch-section-header",
                 )
 
+            # Listen address
+            with Center():
+                with Horizontal(classes="launch-option"):
+                    yield Static("[b]Network[/b]  ", classes="option-label")
+                    yield Select(
+                        [
+                            ("127.0.0.1  (local only)", "127.0.0.1"),
+                            ("0.0.0.0  (LAN / cloud)", "0.0.0.0"),
+                        ],
+                        value=self.user_settings.listen_address,
+                        id="sel-listen",
+                    )
+
+            # SageAttention toggle
+            with Center():
+                with Horizontal(classes="launch-option"):
+                    yield Static("[b]SageAttention[/b]  ", classes="option-label")
+                    yield Switch(value=self.user_settings.use_sage_attention, id="sw-sage")
+
+            # Auto-launch browser toggle
+            with Center():
+                with Horizontal(classes="launch-option"):
+                    yield Static("[b]Auto-open browser[/b]  ", classes="option-label")
+                    yield Switch(value=self.user_settings.auto_launch_browser, id="sw-browser")
+
+            # Action buttons
+            with Center():
+                yield Static("")
+            with Center():
+                yield Button(
+                    "▶  Launch ComfyUI",
+                    id="btn-launch",
+                    variant="success",
+                    classes="menu-button",
+                )
             with Center():
                 yield Button("← Back", id="btn-back", classes="menu-button")
         yield Footer()
@@ -173,17 +208,38 @@ class LaunchScreen(Screen):
 
     # ── Button handlers ──
     def on_button_pressed(self, event: Button.Pressed) -> None:
-        """Handle mode selection or back."""
-        if event.button.id == "btn-back":
+        """Handle mode selection, launch, or back."""
+        bid = event.button.id
+        if bid == "btn-back":
             self.app.pop_screen()
-        elif event.button.id and event.button.id.startswith("btn-mode-"):
-            mode = event.button.id.replace("btn-mode-", "")
-            self._launch_with_mode(mode)
+        elif bid == "btn-launch":
+            self._launch()
+        elif bid and bid.startswith("btn-mode-"):
+            mode = bid.replace("btn-mode-", "")
+            self._select_mode(mode)
 
-    def _launch_with_mode(self, mode: str) -> None:
-        """Save mode, build args, and launch ComfyUI."""
-        # Update settings with chosen mode
+    def _select_mode(self, mode: str) -> None:
+        """Highlight the selected mode button."""
+        for mode_key in ("high", "normal", "low"):
+            btn = self.query_one(f"#btn-mode-{mode_key}", Button)
+            if mode_key == mode:
+                btn.add_class("-active")
+            else:
+                btn.remove_class("-active")
         self.user_settings.vram_mode = mode
+
+    def _collect_settings(self) -> None:
+        """Read current widget values into user_settings."""
+        listen_sel = self.query_one("#sel-listen", Select)
+        if listen_sel.value is not Select.BLANK:
+            self.user_settings.listen_address = str(listen_sel.value)
+
+        self.user_settings.use_sage_attention = self.query_one("#sw-sage", Switch).value
+        self.user_settings.auto_launch_browser = self.query_one("#sw-browser", Switch).value
+
+    def _launch(self) -> None:
+        """Collect settings, save, build args, and launch ComfyUI."""
+        self._collect_settings()
         self.user_settings.save(self.install_path)
 
         comfy_path = self.install_path / "ComfyUI"
@@ -215,5 +271,4 @@ class LaunchScreen(Screen):
             "action": "launch",
             "args": args,
             "cwd": str(self.install_path),
-            "mode": mode,
         })

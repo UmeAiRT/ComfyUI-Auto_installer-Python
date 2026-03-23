@@ -152,23 +152,27 @@ FooterKey {
 }
 
 /* ── Settings Screen ────────────────────────────────────────────── */
-#settings-container {
-    layout: vertical;
+/* ── Launch Options ─────────────────────────────────────────────── */
+.launch-option {
+    width: 50;
+    height: auto;
     align: center middle;
-    width: 100%;
-    height: 100%;
+    padding: 0 1;
 }
 
-#settings-panel {
-    width: 70;
+.option-label {
+    width: auto;
     height: auto;
-    padding: 1 2;
-    border: heavy $catppuccin-mauve;
-    background: $catppuccin-mantle;
+    padding: 0 1 0 0;
+}
+
+.launch-section-header {
+    width: 50;
+    text-align: center;
 }
 
 Select {
-    width: 100%;
+    width: 30;
     margin: 0 0 1 0;
 }
 
