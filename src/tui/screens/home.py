@@ -31,8 +31,8 @@ LOGO = r"""
 """
 
 
-def _get_system_summary() -> str:
-    """Build a one-line system overview."""
+def _get_system_summary(install_path: Path) -> str:
+    """Build a one-line system overview, querying the ComfyUI venv if available."""
     parts = [f"Python {sys.version_info.major}.{sys.version_info.minor}"]
 
     try:
@@ -43,13 +43,37 @@ def _get_system_summary() -> str:
     except Exception:
         pass
 
-    try:
-        import torch
-        parts.append(f"PyTorch {torch.__version__}")
-    except ImportError:
-        pass
+    # Try to get PyTorch version from the ComfyUI venv
+    torch_version = _get_venv_torch_version(install_path)
+    if torch_version:
+        parts.append(f"PyTorch {torch_version}")
 
     return "  │  ".join(parts)
+
+
+def _get_venv_torch_version(install_path: Path) -> str | None:
+    """Query the ComfyUI venv for its PyTorch version."""
+    import subprocess
+
+    # Find the venv python
+    if sys.platform == "win32":
+        venv_python = install_path / "venv" / "Scripts" / "python.exe"
+    else:
+        venv_python = install_path / "venv" / "bin" / "python"
+
+    if not venv_python.exists():
+        return None
+
+    try:
+        result = subprocess.run(  # noqa: S603
+            [str(venv_python), "-c", "import torch; print(torch.__version__)"],
+            capture_output=True, text=True, timeout=5,
+        )
+        if result.returncode == 0:
+            return result.stdout.strip()
+    except Exception:
+        pass
+    return None
 
 
 def _is_comfyui_installed(install_path: Path) -> bool:
@@ -97,7 +121,7 @@ class HomeScreen(Screen):
             yield Static(LOGO, id="logo-panel")
 
             if self.comfyui_installed:
-                yield Static(_get_system_summary(), id="system-info-bar")
+                yield Static(_get_system_summary(self.install_path), id="system-info-bar")
             else:
                 yield Static(
                     "[bold yellow]⚠ ComfyUI not detected[/] — Run Install first",
