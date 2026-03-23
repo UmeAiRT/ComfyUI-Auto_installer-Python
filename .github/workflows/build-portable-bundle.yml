@@ -362,12 +362,21 @@ jobs:
           "@ | ForEach-Object {
             if ($_ -match "^WHEEL_URL=(.+)$") {
               $wheelUrl = $matches[1]
+              # Extract real wheel filename from URL (pip needs standard naming)
+              $wheelFilename = ($wheelUrl -split '/')[-1]
+              $wheelFile = "$env:TEMP\$wheelFilename"
               Write-Host "Downloading SageAttention from: $wheelUrl"
-              $wheelFile = "$env:TEMP\sageattention.whl"
+              Write-Host "  Wheel filename: $wheelFilename"
               Invoke-WebRequest -Uri $wheelUrl -OutFile $wheelFile -UseBasicParsing
               & $python -m pip install $wheelFile --quiet
               Remove-Item $wheelFile -Force -ErrorAction SilentlyContinue
-              Write-Host "  ✓ SageAttention installed"
+              # Verify installation
+              $importCheck = & $python -c "import sageattention; print('OK')" 2>&1
+              if ($importCheck -match "OK") {
+                Write-Host "  ✓ SageAttention installed and verified"
+              } else {
+                Write-Host "  ⚠️ SageAttention install may have failed: $importCheck"
+              }
             }
           }
 
@@ -689,7 +698,7 @@ jobs:
               "nodes": nodes,
               "sha256": sha256,
               "size_bytes": size_bytes,
-              "built_at": datetime.datetime.utcnow().isoformat() + "Z",
+              "built_at": datetime.datetime.now(datetime.UTC).isoformat() + "Z",
           }
 
           print(f"Added/updated entry: {bundle_key}")
