@@ -218,7 +218,9 @@ jobs:
       # ── Standard packages ─────────────────────────────────────────
       - name: Install standard Python packages
         shell: pwsh
+        continue-on-error: true
         run: |
+          $ErrorActionPreference = 'Continue'
           $python = "$env:PORTABLE\python_embeded\python.exe"
 
           # Install ComfyUI requirements (should mostly be satisfied already)
@@ -227,6 +229,10 @@ jobs:
             Write-Host "Installing ComfyUI requirements..."
             & $python -m pip install -r $reqFile --quiet 2>&1 | ForEach-Object { Write-Host "  $_" }
           }
+
+          # Pre-install build dependencies needed by some packages (e.g. insightface)
+          Write-Host "Installing build dependencies..."
+          & $python -m pip install Cython wheel setuptools --quiet 2>&1 | Out-Null
 
           # Install additional standard packages from dependencies.json
           Write-Host "Installing standard packages..."
@@ -245,12 +251,14 @@ jobs:
               & $python -m pip install @packages --quiet 2>&1 | ForEach-Object { Write-Host "  $_" }
             }
           }
+          Write-Host "Standard packages step complete (some may have failed — non-blocking)."
 
       # ── Custom Nodes ──────────────────────────────────────────────
       - name: Install custom nodes (${{ needs.check-release.outputs.node_tier }})
         id: nodes
         shell: pwsh
         run: |
+          $ErrorActionPreference = 'Continue'
           $python = "$env:PORTABLE\python_embeded\python.exe"
           $nodesDir = "$env:PORTABLE\ComfyUI\custom_nodes"
           $tier = $env:NODE_TIER
@@ -285,7 +293,9 @@ jobs:
 
             Write-Host "  📦 $nodeName..."
             try {
-              git clone --depth 1 $nodeUrl $nodePath 2>&1 | Out-Null
+              # Use Start-Process to avoid PowerShell treating git stderr as errors
+              $proc = Start-Process -FilePath "git" -ArgumentList "clone","--depth","1",$nodeUrl,$nodePath -Wait -PassThru -NoNewWindow -RedirectStandardError "NUL" 2>$null
+              if ($proc.ExitCode -ne 0) { throw "git clone exited with code $($proc.ExitCode)" }
 
               # Install requirements if specified
               if ($node.requirements) {
