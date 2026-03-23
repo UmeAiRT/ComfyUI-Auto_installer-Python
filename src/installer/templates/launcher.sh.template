@@ -16,6 +16,7 @@ fi
 if [ "$INSTALL_TYPE" = "venv" ]; then
     echo "[INFO] Activating venv..."
     source "$SCRIPT_DIR/scripts/venv/bin/activate"
+    PYTHON_EXE="$SCRIPT_DIR/scripts/venv/bin/python"
 else
     echo "[INFO] Activating local Conda environment..."
     # Attempt to source conda if available
@@ -29,32 +30,24 @@ else
         source "/opt/miniconda3/etc/profile.d/conda.sh"
     fi
     conda activate "$SCRIPT_DIR/scripts/conda_env"
+    PYTHON_EXE="python"
 fi
 
-# --- Network Mode (saved after first choice) ---
-LISTEN_CFG="$SCRIPT_DIR/scripts/listen_address"
+# --- Listen Address ---
 LISTEN_ADDR="127.0.0.1"
-
-if [ -f "$LISTEN_CFG" ]; then
-    LISTEN_ADDR=$(cat "$LISTEN_CFG")
-else
-    echo ""
-    echo "  === Network Access Mode ==="
-    echo ""
-    echo "  1. Local  (127.0.0.1)  - PC local only (default)"
-    echo "  2. Open   (0.0.0.0)   - RunPod / cloud / LAN"
-    echo ""
-    read -r -p "  Select [1/2] (default: 1): " NETWORK_CHOICE
-    if [ "$NETWORK_CHOICE" = "2" ]; then
-        LISTEN_ADDR="0.0.0.0"
-    fi
-    echo "$LISTEN_ADDR" > "$LISTEN_CFG"
-    echo "  [INFO] Saved to $LISTEN_CFG"
-    echo "  [INFO] To change later, delete this file and relaunch."
-    echo ""
+if [ -f "$SCRIPT_DIR/scripts/listen_address" ]; then
+    LISTEN_ADDR=$(cat "$SCRIPT_DIR/scripts/listen_address")
 fi
 
 # --- Launch ComfyUI ---
+if [ ! -f "$SCRIPT_DIR/ComfyUI/main.py" ]; then
+    echo "[ERROR] ComfyUI not found at $SCRIPT_DIR/ComfyUI"
+    echo "[INFO]  Run the installer first or use the TUI: umeairt-comfyui-installer"
+    exit 1
+fi
+
+echo ""
 echo "[INFO] Starting ComfyUI ({mode_label}) on $LISTEN_ADDR..."
-cd "$SCRIPT_DIR/ComfyUI"
-python main.py {args} --listen "$LISTEN_ADDR"
+echo "[INFO] Press Ctrl+C to stop."
+echo ""
+"$PYTHON_EXE" -s "$SCRIPT_DIR/ComfyUI/main.py" {args} --listen "$LISTEN_ADDR"

@@ -20,6 +20,7 @@ if exist "%InstallPath%\scripts\install_type" set /p InstallType=<"%InstallPath%
 if "%InstallType%"=="venv" (
     set "VIRTUAL_ENV=%InstallPath%\scripts\venv"
     set "PATH=%InstallPath%\scripts\venv\Scripts;%PATH%"
+    set "PYTHON_EXE=%InstallPath%\scripts\venv\Scripts\python.exe"
     echo [INFO] Venv activated.
 ) else (
     echo [INFO] Activating local Conda environment...
@@ -36,33 +37,25 @@ if "%InstallType%"=="venv" (
     )
     
     call conda activate "%InstallPath%\scripts\conda_env"
+    set "PYTHON_EXE=python"
 )
 
-:: Activation errors will surface when python fails to launch below.
-
-:: --- Network Mode (saved after first choice) ---
-set "LISTEN_CFG=%InstallPath%\scripts\listen_address"
+:: --- Listen Address ---
 set "LISTEN_ADDR=127.0.0.1"
-
-if exist "%LISTEN_CFG%" set /p LISTEN_ADDR=<"%LISTEN_CFG%"
-if exist "%LISTEN_CFG%" goto :listen_done
-echo.
-echo   === Network Access Mode ===
-echo.
-echo   1. Local  ^(127.0.0.1^)  - PC local only ^(default^)
-echo   2. Open   ^(0.0.0.0^)   - RunPod / cloud / LAN
-echo.
-set /p "NETWORK_CHOICE=  Select [1/2] (default: 1): "
-if "!NETWORK_CHOICE!"=="2" set "LISTEN_ADDR=0.0.0.0"
-echo !LISTEN_ADDR!> "%LISTEN_CFG%"
-echo   [INFO] Saved to %LISTEN_CFG%
-echo   [INFO] To change later, delete this file and relaunch.
-echo.
-:listen_done
+if exist "%InstallPath%\scripts\listen_address" set /p LISTEN_ADDR=<"%InstallPath%\scripts\listen_address"
 
 :: --- Launch ComfyUI ---
+if not exist "%InstallPath%\ComfyUI\main.py" (
+    echo [ERROR] ComfyUI not found at %InstallPath%\ComfyUI
+    echo [INFO]  Run the installer first or use the TUI: umeairt-comfyui-installer
+    pause
+    exit /b 1
+)
+
+echo.
 echo [INFO] Starting ComfyUI ({mode_label}) on %LISTEN_ADDR%...
-cd /d "%InstallPath%\ComfyUI"
-python main.py {args} --listen %LISTEN_ADDR%
+echo [INFO] Press Ctrl+C to stop.
+echo.
+"%PYTHON_EXE%" -s "%InstallPath%\ComfyUI\main.py" {args} --listen %LISTEN_ADDR%
 
 pause
