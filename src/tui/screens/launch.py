@@ -123,36 +123,26 @@ class LaunchScreen(Screen):
                         classes=classes,
                     )
 
-            # ── Options ──
+            # ── Options (single row) ──
             with Center():
                 yield Static(
                     "\n[b]Options:[/b]",
                     classes="launch-section-header",
                 )
-
-            # Listen address
             with Center():
-                with Horizontal(classes="launch-option"):
-                    yield Static("[b]Network[/b]  ", classes="option-label")
+                with Horizontal(classes="launch-options-row"):
+                    yield Static("[b]Network[/b] ", classes="option-label")
                     yield Select(
                         [
-                            ("127.0.0.1  (local only)", "127.0.0.1"),
-                            ("0.0.0.0  (LAN / cloud)", "0.0.0.0"),
+                            ("127.0.0.1 (local)", "127.0.0.1"),
+                            ("0.0.0.0 (LAN)", "0.0.0.0"),
                         ],
                         value=self.user_settings.listen_address,
                         id="sel-listen",
                     )
-
-            # SageAttention toggle
-            with Center():
-                with Horizontal(classes="launch-option"):
-                    yield Static("[b]SageAttention[/b]  ", classes="option-label")
+                    yield Static("  [b]Sage[/b] ", classes="option-label")
                     yield Switch(value=self.user_settings.use_sage_attention, id="sw-sage")
-
-            # Auto-launch browser toggle
-            with Center():
-                with Horizontal(classes="launch-option"):
-                    yield Static("[b]Auto-open browser[/b]  ", classes="option-label")
+                    yield Static("  [b]Browser[/b] ", classes="option-label")
                     yield Switch(value=self.user_settings.auto_launch_browser, id="sw-browser")
 
             # Action buttons

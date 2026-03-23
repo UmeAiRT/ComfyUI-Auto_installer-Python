@@ -153,17 +153,17 @@ FooterKey {
 
 /* ── Settings Screen ────────────────────────────────────────────── */
 /* ── Launch Options ─────────────────────────────────────────────── */
-.launch-option {
-    width: 50;
+.launch-options-row {
+    width: auto;
     height: auto;
     align: center middle;
-    padding: 0 1;
+    padding: 1 0;
 }
 
 .option-label {
     width: auto;
-    height: auto;
-    padding: 0 1 0 0;
+    height: 3;
+    content-align: left middle;
 }
 
 .launch-section-header {
@@ -172,12 +172,12 @@ FooterKey {
 }
 
 Select {
-    width: 30;
-    margin: 0 0 1 0;
+    width: 25;
+    margin: 0;
 }
 
 Switch {
-    margin: 0 0 1 0;
+    margin: 0;
 }
 
 /* ── Info Screen ────────────────────────────────────────────────── */
