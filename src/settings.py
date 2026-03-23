@@ -7,9 +7,12 @@ Settings are stored as JSON and read by the TUI and launcher.
 from __future__ import annotations
 
 import json
-from pathlib import Path
+from typing import TYPE_CHECKING
 
 from pydantic import BaseModel, Field
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 
 class UserSettings(BaseModel):

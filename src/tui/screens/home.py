@@ -9,7 +9,6 @@ Detects whether ComfyUI is installed to adjust available actions.
 from __future__ import annotations
 
 import sys
-from pathlib import Path
 from typing import TYPE_CHECKING
 
 from textual.binding import Binding
@@ -18,6 +17,8 @@ from textual.screen import Screen
 from textual.widgets import Button, Footer, Header, Static
 
 if TYPE_CHECKING:
+    from pathlib import Path
+
     from textual.app import ComposeResult
 
     from src.settings import UserSettings

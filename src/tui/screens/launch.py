@@ -129,21 +129,20 @@ class LaunchScreen(Screen):
                     "\n[b]Options:[/b]",
                     classes="launch-section-header",
                 )
-            with Center():
-                with Horizontal(classes="launch-options-row"):
-                    yield Static("[b]Network[/b] ", classes="option-label")
-                    yield Select(
-                        [
-                            ("127.0.0.1 (local)", "127.0.0.1"),
-                            ("0.0.0.0 (LAN)", "0.0.0.0"),
-                        ],
-                        value=self.user_settings.listen_address,
-                        id="sel-listen",
-                    )
-                    yield Static("  [b]Sage[/b] ", classes="option-label")
-                    yield Switch(value=self.user_settings.use_sage_attention, id="sw-sage")
-                    yield Static("  [b]Browser[/b] ", classes="option-label")
-                    yield Switch(value=self.user_settings.auto_launch_browser, id="sw-browser")
+            with Center(), Horizontal(classes="launch-options-row"):
+                yield Static("[b]Network[/b] ", classes="option-label")
+                yield Select(
+                    [
+                        ("127.0.0.1 (local)", "127.0.0.1"),
+                        ("0.0.0.0 (LAN)", "0.0.0.0"),
+                    ],
+                    value=self.user_settings.listen_address,
+                    id="sel-listen",
+                )
+                yield Static("  [b]Sage[/b] ", classes="option-label")
+                yield Switch(value=self.user_settings.use_sage_attention, id="sw-sage")
+                yield Static("  [b]Browser[/b] ", classes="option-label")
+                yield Switch(value=self.user_settings.auto_launch_browser, id="sw-browser")
 
             # Action buttons
             with Center():

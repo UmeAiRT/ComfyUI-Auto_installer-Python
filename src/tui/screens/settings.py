@@ -4,7 +4,6 @@ Settings Screen — Configure user preferences.
 
 from __future__ import annotations
 
-from pathlib import Path
 from typing import TYPE_CHECKING
 
 from textual.containers import Center, Vertical
@@ -12,6 +11,8 @@ from textual.screen import Screen
 from textual.widgets import Button, Select, Static, Switch
 
 if TYPE_CHECKING:
+    from pathlib import Path
+
     from textual.app import ComposeResult
 
     from src.settings import UserSettings

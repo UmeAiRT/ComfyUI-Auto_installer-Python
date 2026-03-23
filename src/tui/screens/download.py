@@ -9,8 +9,7 @@ Then download via the existing engine.
 
 from __future__ import annotations
 
-import sys
-from pathlib import Path
+import contextlib
 from typing import TYPE_CHECKING
 
 from textual.binding import Binding
@@ -19,6 +18,8 @@ from textual.screen import Screen
 from textual.widgets import Button, Footer, Header, LoadingIndicator, Static
 
 if TYPE_CHECKING:
+    from pathlib import Path
+
     from textual.app import ComposeResult
 
 
@@ -147,10 +148,8 @@ class DownloadScreen(Screen):
 
         # Focus first bundle button
         if self._button_ids:
-            try:
+            with contextlib.suppress(Exception):
                 self.query_one(f"#{self._button_ids[0]}", Button).focus()
-            except Exception:
-                pass
 
     def _show_variant_list(self, bundle_key: str) -> None:
         """Show variants for a specific bundle."""
@@ -204,10 +203,8 @@ class DownloadScreen(Screen):
         content.mount(Center(Button("← Back to bundles", id="btn-var-back", classes="menu-button")))
 
         if self._button_ids:
-            try:
+            with contextlib.suppress(Exception):
                 self.query_one(f"#{self._button_ids[0]}", Button).focus()
-            except Exception:
-                pass
 
     def _start_download(self, btn_id: str) -> None:
         """Exit TUI and run download command."""
@@ -224,18 +221,14 @@ class DownloadScreen(Screen):
     def action_move_down(self) -> None:
         idx = self._get_focused_index()
         if idx >= 0 and idx < len(self._button_ids) - 1:
-            try:
+            with contextlib.suppress(Exception):
                 self.query_one(f"#{self._button_ids[idx + 1]}", Button).focus()
-            except Exception:
-                pass
 
     def action_move_up(self) -> None:
         idx = self._get_focused_index()
         if idx > 0:
-            try:
+            with contextlib.suppress(Exception):
                 self.query_one(f"#{self._button_ids[idx - 1]}", Button).focus()
-            except Exception:
-                pass
 
     def action_press_focused(self) -> None:
         focused = self.focused

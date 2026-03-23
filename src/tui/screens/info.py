@@ -7,10 +7,10 @@ Uses a background worker to avoid blocking the TUI during queries.
 
 from __future__ import annotations
 
+import contextlib
 import json
 import subprocess
 import sys
-from pathlib import Path
 from typing import TYPE_CHECKING
 
 from textual.containers import Center, VerticalScroll
@@ -18,6 +18,8 @@ from textual.screen import Screen
 from textual.widgets import Button, Footer, Header, LoadingIndicator, Static
 
 if TYPE_CHECKING:
+    from pathlib import Path
+
     from textual.app import ComposeResult
 
 
@@ -121,17 +123,16 @@ def _build_info_text(install_path: Path) -> str:
     if venv_python:
         raw = _query_venv(venv_python, _VENV_PACKAGES_SCRIPT)
         if raw:
-            try:
+            with contextlib.suppress(json.JSONDecodeError):
                 pkg_info = json.loads(raw)
-            except json.JSONDecodeError:
-                pass
 
     # ── Environment ──
     lines.append("[b]── Environment ──[/b]")
     if pkg_info.get("python"):
         lines.append(f"[b]Python:[/b]         {pkg_info['python']} [dim](ComfyUI venv)[/dim]")
     else:
-        lines.append(f"[b]Python:[/b]         {sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro} [dim](system)[/dim]")
+        py_ver = f"{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}"
+        lines.append(f"[b]Python:[/b]         {py_ver} [dim](system)[/dim]")
     lines.append(f"[b]Platform:[/b]       {sys.platform}")
 
     # ── GPU ──
