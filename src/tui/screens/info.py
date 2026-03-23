@@ -21,10 +21,11 @@ if TYPE_CHECKING:
 
 def _get_venv_python(install_path: Path) -> Path | None:
     """Find the ComfyUI venv Python executable."""
+    # Venv is at install_path/scripts/venv/ (see environment.py)
     if sys.platform == "win32":
-        venv_python = install_path / "venv" / "Scripts" / "python.exe"
+        venv_python = install_path / "scripts" / "venv" / "Scripts" / "python.exe"
     else:
-        venv_python = install_path / "venv" / "bin" / "python"
+        venv_python = install_path / "scripts" / "venv" / "bin" / "python"
     return venv_python if venv_python.exists() else None
 
 

@@ -55,11 +55,11 @@ def _get_venv_torch_version(install_path: Path) -> str | None:
     """Query the ComfyUI venv for its PyTorch version."""
     import subprocess
 
-    # Find the venv python
+    # Venv is at install_path/scripts/venv/ (see environment.py)
     if sys.platform == "win32":
-        venv_python = install_path / "venv" / "Scripts" / "python.exe"
+        venv_python = install_path / "scripts" / "venv" / "Scripts" / "python.exe"
     else:
-        venv_python = install_path / "venv" / "bin" / "python"
+        venv_python = install_path / "scripts" / "venv" / "bin" / "python"
 
     if not venv_python.exists():
         return None
