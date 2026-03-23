@@ -210,14 +210,10 @@ class LaunchScreen(Screen):
 
         args.extend(self.user_settings.build_comfyui_args())
 
-        # Exit TUI, clear screen, and run ComfyUI in foreground
-        self.app.exit()
-        import os
-        os.system("cls" if sys.platform == "win32" else "clear")  # noqa: S605
-        print(f"\n🚀 Starting ComfyUI ({mode} mode)...")
-        print(f"   {' '.join(args)}\n")
-        print("   Press Ctrl+C to stop.\n")
-        try:
-            subprocess.run(args, cwd=str(self.install_path))  # noqa: S603
-        except KeyboardInterrupt:
-            print("\n\n⏹️  ComfyUI stopped.")
+        # Return launch info — cli.py will execute after TUI is fully closed
+        self.app.exit(result={
+            "action": "launch",
+            "args": args,
+            "cwd": str(self.install_path),
+            "mode": mode,
+        })

@@ -41,8 +41,24 @@ def main() -> None:
 
         result = run_tui(install_path=install_path)
 
-        # If TUI returned a command string, run it in the terminal
-        if isinstance(result, str):
+        # Handle TUI result
+        if isinstance(result, dict) and result.get("action") == "launch":
+            # Launch ComfyUI in foreground
+            import os
+            import subprocess
+
+            os.system("cls" if sys.platform == "win32" else "clear")  # noqa: S605
+            mode = result.get("mode", "normal")
+            print(f"\n🚀 Starting ComfyUI ({mode} mode)...")
+            print(f"   {' '.join(result['args'])}\n")
+            print("   Press Ctrl+C to stop.\n")
+            try:
+                subprocess.run(result["args"], cwd=result["cwd"])  # noqa: S603
+            except KeyboardInterrupt:
+                print("\n\n⏹️  ComfyUI stopped.")
+
+        elif isinstance(result, str):
+            # CLI command (install, update, etc.)
             import shlex
             import subprocess
 
