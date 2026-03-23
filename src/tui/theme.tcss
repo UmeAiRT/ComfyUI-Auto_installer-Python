@@ -234,28 +234,72 @@ Switch {
     height: 100%;
 }
 
-#launch-panel {
-    width: 70;
+#launch-title {
+    width: 64;
     height: auto;
-    padding: 1 2;
-    border: heavy $catppuccin-green;
-    background: $catppuccin-mantle;
-}
-
-#launch-button {
-    width: 100%;
-    height: 5;
-    margin: 1 0;
     content-align: center middle;
     text-align: center;
-    background: $catppuccin-green 20%;
+    padding: 1 0;
+    margin: 1 0 0 0;
     color: $catppuccin-green;
-    border: heavy $catppuccin-green;
+}
+
+#launch-subtitle {
+    width: 64;
+    height: auto;
+    content-align: center middle;
+    text-align: center;
+}
+
+#launch-modes {
+    width: 64;
+    height: auto;
+    align: center middle;
+}
+
+#launch-info {
+    width: 64;
+    height: auto;
+    content-align: center middle;
+    text-align: center;
+}
+
+.mode-button {
+    width: 60;
+    height: 5;
+    margin: 0 2;
+    content-align: center middle;
+    text-align: center;
+    background: $catppuccin-surface0;
+    color: $catppuccin-text;
+    border: tall $catppuccin-surface1;
+}
+
+.mode-button:hover {
+    background: $catppuccin-surface1;
+    border: tall $catppuccin-mauve;
+}
+
+.mode-button:focus {
+    background: $catppuccin-surface1;
+    border: tall $catppuccin-mauve;
     text-style: bold;
 }
 
-#launch-button:hover {
-    background: $catppuccin-green 30%;
+.mode-button.-primary {
+    background: $catppuccin-green 15%;
+    color: $catppuccin-green;
+    border: tall $catppuccin-green 50%;
+}
+
+.mode-button.-primary:hover {
+    background: $catppuccin-green 25%;
+}
+
+.mode-button.-primary:focus {
+    background: $catppuccin-green 25%;
+    border: tall $catppuccin-green;
+    text-style: bold;
 }
 
 /* ── Generic buttons ────────────────────────────────────────────── */

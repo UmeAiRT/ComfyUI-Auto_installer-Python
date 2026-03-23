@@ -65,5 +65,15 @@ class UserSettings(BaseModel):
         elif self.vram_mode == "high":
             args.append("--highvram")
 
+        # DirectML for AMD on Windows
+        try:
+            import sys as _sys
+            if _sys.platform == "win32":
+                from src.utils.gpu import check_amd_gpu
+                if check_amd_gpu():
+                    args.append("--directml")
+        except Exception:
+            pass
+
         args.extend(self.extra_args)
         return args
