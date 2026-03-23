@@ -35,6 +35,7 @@ env:
   MS_ENDPOINT: "https://www.modelscope.ai"
   DIST_DIR: distributions
   COMFYUI_REPO: Comfy-Org/ComfyUI
+  MANIFEST_NAME: distributions_manifest.json
 
 jobs:
   # ---------------------------------------------------------------------------
@@ -49,8 +50,6 @@ jobs:
       download_url: ${{ steps.check.outputs.download_url }}
       node_tier: ${{ steps.check.outputs.node_tier }}
     steps:
-      - uses: actions/checkout@v4
-
       - name: Check latest ComfyUI release
         id: check
         env:
@@ -58,6 +57,7 @@ jobs:
           FORCE_REBUILD: ${{ github.event.inputs.force_rebuild || 'false' }}
           INPUT_VERSION: ${{ github.event.inputs.comfyui_version || '' }}
           INPUT_TIER: ${{ github.event.inputs.node_tier || 'umeairt' }}
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
         run: |
           echo "node_tier=$INPUT_TIER" >> "$GITHUB_OUTPUT"
 
@@ -65,17 +65,20 @@ jobs:
           if [ -n "$INPUT_VERSION" ]; then
             VERSION="$INPUT_VERSION"
             echo "Using manually specified version: $VERSION"
+            # When a version is specified, try to find its release (may differ from /latest)
+            DOWNLOAD_URL=$(curl -sf -H "Authorization: token $GH_TOKEN" \
+              "https://api.github.com/repos/${{ env.COMFYUI_REPO }}/releases/tags/$VERSION" | \
+              python3 -c "import sys,json; d=json.load(sys.stdin); print(next((a['browser_download_url'] for a in d.get('assets',[]) if a['name']=='ComfyUI_windows_portable_nvidia.7z'),''))" 2>/dev/null || echo "")
           else
-            VERSION=$(gh api repos/${{ env.COMFYUI_REPO }}/releases/latest --jq '.tag_name')
+            RELEASE_JSON=$(curl -sf -H "Authorization: token $GH_TOKEN" \
+              "https://api.github.com/repos/${{ env.COMFYUI_REPO }}/releases/latest")
+            VERSION=$(echo "$RELEASE_JSON" | python3 -c "import sys,json; print(json.load(sys.stdin)['tag_name'])")
+            DOWNLOAD_URL=$(echo "$RELEASE_JSON" | python3 -c "import sys,json; d=json.load(sys.stdin); print(next((a['browser_download_url'] for a in d.get('assets',[]) if a['name']=='ComfyUI_windows_portable_nvidia.7z'),''))")
             echo "Latest ComfyUI release: $VERSION"
           fi
 
-          # Get download URL for the NVIDIA portable
-          DOWNLOAD_URL=$(gh api repos/${{ env.COMFYUI_REPO }}/releases/latest --jq \
-            '.assets[] | select(.name == "ComfyUI_windows_portable_nvidia.7z") | .browser_download_url')
-
           if [ -z "$DOWNLOAD_URL" ]; then
-            echo "::error::Could not find ComfyUI_windows_portable_nvidia.7z in release assets"
+            echo "::error::Could not find ComfyUI_windows_portable_nvidia.7z in release $VERSION"
             echo "should_build=false" >> "$GITHUB_OUTPUT"
             exit 0
           fi
@@ -84,20 +87,34 @@ jobs:
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
           echo "download_url=$DOWNLOAD_URL" >> "$GITHUB_OUTPUT"
 
-          # Compare with last built version
-          LAST_VERSION="none"
-          if [ -f .github/portable-bundle-version.txt ]; then
-            LAST_VERSION=$(cat .github/portable-bundle-version.txt | tr -d '[:space:]')
+          # Fetch current distributions_manifest.json from HuggingFace
+          MANIFEST_URL="https://huggingface.co/${{ env.HF_REPO }}/resolve/main/${{ env.MANIFEST_NAME }}"
+          BUNDLE_KEY="${VERSION}_nvidia_${INPUT_TIER}"
+          ALREADY_BUILT="false"
+
+          HTTP_CODE=$(curl -sf -o /tmp/dist_manifest.json -w "%{http_code}" \
+            -H "Authorization: Bearer $HF_TOKEN" "$MANIFEST_URL" 2>/dev/null || echo "000")
+
+          if [ "$HTTP_CODE" = "200" ] && [ -f /tmp/dist_manifest.json ]; then
+            echo "Existing manifest found, checking for $BUNDLE_KEY..."
+            ALREADY_BUILT=$(python3 -c "
+          import json
+          with open('/tmp/dist_manifest.json') as f:
+              m = json.load(f)
+          print('true' if '$BUNDLE_KEY' in m.get('distributions', {}) else 'false')
+          " 2>/dev/null || echo "false")
+          else
+            echo "No existing manifest found (HTTP $HTTP_CODE) — first build."
           fi
 
-          echo "Last built version: $LAST_VERSION"
+          echo "Already built: $ALREADY_BUILT"
 
-          if [ "$FORCE_REBUILD" = "true" ] || [ "$VERSION" != "$LAST_VERSION" ]; then
+          if [ "$FORCE_REBUILD" = "true" ] || [ "$ALREADY_BUILT" = "false" ]; then
             echo "should_build=true" >> "$GITHUB_OUTPUT"
-            echo "✅ Will build: version=$VERSION (last=$LAST_VERSION, force=$FORCE_REBUILD)"
+            echo "✅ Will build: version=$VERSION tier=$INPUT_TIER (already_built=$ALREADY_BUILT, force=$FORCE_REBUILD)"
           else
             echo "should_build=false" >> "$GITHUB_OUTPUT"
-            echo "⏭️ Skip: version $VERSION already built"
+            echo "⏭️ Skip: $BUNDLE_KEY already exists in manifest"
           fi
 
   # ---------------------------------------------------------------------------
@@ -108,6 +125,15 @@ jobs:
     needs: check-release
     if: needs.check-release.outputs.should_build == 'true'
     runs-on: windows-latest
+    outputs:
+      bundle_name: ${{ steps.compress.outputs.bundle_name }}
+      bundle_sha256: ${{ steps.compress.outputs.bundle_sha256 }}
+      bundle_size: ${{ steps.compress.outputs.bundle_size }}
+      python_version: ${{ steps.verify.outputs.python_version }}
+      pytorch_version: ${{ steps.verify.outputs.pytorch_version }}
+      cuda_version: ${{ steps.verify.outputs.cuda_version }}
+      node_count: ${{ steps.nodes.outputs.node_count }}
+      node_list: ${{ steps.nodes.outputs.node_list }}
     env:
       COMFYUI_VERSION: ${{ needs.check-release.outputs.version }}
       DOWNLOAD_URL: ${{ needs.check-release.outputs.download_url }}
@@ -123,10 +149,11 @@ jobs:
       - name: Download ComfyUI Portable
         shell: pwsh
         run: |
+          New-Item -ItemType Directory -Force -Path $env:PORTABLE_ROOT | Out-Null
           Write-Host "Downloading ComfyUI portable ($env:COMFYUI_VERSION)..."
           Write-Host "URL: $env:DOWNLOAD_URL"
           Invoke-WebRequest -Uri $env:DOWNLOAD_URL -OutFile "$env:PORTABLE_ROOT\comfyui_portable.7z" -UseBasicParsing
-          Write-Host "Download complete. Size: $((Get-Item "$env:PORTABLE_ROOT\comfyui_portable.7z").Length / 1MB) MB"
+          Write-Host "Download complete. Size: $([math]::Round((Get-Item "$env:PORTABLE_ROOT\comfyui_portable.7z").Length / 1MB, 1)) MB"
 
       - name: Extract portable
         shell: pwsh
@@ -138,6 +165,7 @@ jobs:
           Get-ChildItem $env:PORTABLE -Name
 
       - name: Verify portable structure
+        id: verify
         shell: pwsh
         run: |
           $python = "$env:PORTABLE\python_embeded\python.exe"
@@ -146,9 +174,16 @@ jobs:
           if (-not (Test-Path $python)) { throw "python_embeded\python.exe not found!" }
           if (-not (Test-Path $comfy)) { throw "ComfyUI\ directory not found!" }
 
-          # Show Python and PyTorch info
-          & $python -c "import sys; print(f'Python {sys.version}')"
-          & $python -c "import torch; print(f'PyTorch {torch.__version__}, CUDA {torch.version.cuda}')"
+          # Capture versions for manifest
+          $pyVer = & $python -c "import sys; print(f'{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}')"
+          $torchVer = & $python -c "import torch; print(torch.__version__)"
+          $cudaVer = & $python -c "import torch; print(torch.version.cuda)"
+
+          Write-Host "Python: $pyVer | PyTorch: $torchVer | CUDA: $cudaVer"
+
+          echo "python_version=$pyVer" >> $env:GITHUB_OUTPUT
+          echo "pytorch_version=$torchVer" >> $env:GITHUB_OUTPUT
+          echo "cuda_version=$cudaVer" >> $env:GITHUB_OUTPUT
 
       # ── Provisioning ──────────────────────────────────────────────
       - name: Provision configuration files
@@ -216,6 +251,7 @@ jobs:
 
       # ── Custom Nodes ──────────────────────────────────────────────
       - name: Install custom nodes (${{ needs.check-release.outputs.node_tier }})
+        id: nodes
         shell: pwsh
         run: |
           $python = "$env:PORTABLE\python_embeded\python.exe"
@@ -228,6 +264,7 @@ jobs:
           $manifest = Get-Content "installer\scripts\custom_nodes.json" -Raw | ConvertFrom-Json
           $tierOrder = @{ "minimal" = 0; "umeairt" = 1; "full" = 2 }
           $targetLevel = $tierOrder[$tier]
+          $installedNodes = @()
 
           foreach ($node in $manifest.nodes) {
             $nodeLevel = $tierOrder[$node.tier]
@@ -245,6 +282,7 @@ jobs:
 
             if (Test-Path $nodePath) {
               Write-Host "  ⏭️ $nodeName (already exists)"
+              $installedNodes += $nodeName
               continue
             }
 
@@ -260,6 +298,7 @@ jobs:
                   Write-Host "    ✓ requirements installed"
                 }
               }
+              $installedNodes += $nodeName
               Write-Host "    ✓ cloned"
             } catch {
               Write-Host "    ⚠️ Failed: $_"
@@ -273,6 +312,13 @@ jobs:
             Copy-Item $nunchakuSrc $nunchakuDst
             Write-Host "  ✓ nunchaku_versions.json provisioned"
           }
+
+          # Output node metadata
+          $nodeCount = $installedNodes.Count
+          $nodeListJson = ($installedNodes | ConvertTo-Json -Compress)
+          echo "node_count=$nodeCount" >> $env:GITHUB_OUTPUT
+          echo "node_list=$nodeListJson" >> $env:GITHUB_OUTPUT
+          Write-Host "Installed $nodeCount custom nodes."
 
       # ── SageAttention wheels ──────────────────────────────────────
       - name: Install SageAttention wheels
@@ -437,22 +483,30 @@ jobs:
             Remove-Item $pipCache -Recurse -Force -ErrorAction SilentlyContinue
           }
 
-          # Remove installer checkout (not part of the bundle)
-          # (it's in a separate path, not inside $PORTABLE)
-
           # Show final size
           $size = (Get-ChildItem $env:PORTABLE -Recurse -File | Measure-Object -Property Length -Sum).Sum
           Write-Host "Bundle size before compression: $([math]::Round($size / 1GB, 2)) GB"
 
       # ── Compress ──────────────────────────────────────────────────
       - name: Compress bundle
+        id: compress
         shell: pwsh
         run: |
           $bundleName = "UmeAiRT-ComfyUI-Portable-Win-NVIDIA-$env:COMFYUI_VERSION-$env:NODE_TIER.7z"
           Write-Host "Compressing to $bundleName..."
           7z a -t7z -mx=7 -mmt=on "C:\$bundleName" "$env:PORTABLE\*"
-          $size = (Get-Item "C:\$bundleName").Length
+
+          $file = Get-Item "C:\$bundleName"
+          $size = $file.Length
           Write-Host "Compressed size: $([math]::Round($size / 1GB, 2)) GB"
+
+          # Compute SHA-256
+          $hash = (Get-FileHash "C:\$bundleName" -Algorithm SHA256).Hash.ToLower()
+          Write-Host "SHA-256: $hash"
+
+          echo "bundle_name=$bundleName" >> $env:GITHUB_OUTPUT
+          echo "bundle_sha256=$hash" >> $env:GITHUB_OUTPUT
+          echo "bundle_size=$size" >> $env:GITHUB_OUTPUT
 
           echo "BUNDLE_NAME=$bundleName" >> $env:GITHUB_ENV
           echo "BUNDLE_PATH=C:\$bundleName" >> $env:GITHUB_ENV
@@ -522,23 +576,153 @@ jobs:
           "@
 
   # ---------------------------------------------------------------------------
-  # Job 3: Update version tracker
+  # Job 3: Update distributions manifest on Assets repos
   # ---------------------------------------------------------------------------
-  update-version:
-    name: "Update version tracker"
+  update-manifest:
+    name: "Update distributions manifest"
     needs: [check-release, build-bundle]
     if: needs.build-bundle.result == 'success'
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
+    env:
+      COMFYUI_VERSION: ${{ needs.check-release.outputs.version }}
+      NODE_TIER: ${{ needs.check-release.outputs.node_tier }}
+      BUNDLE_NAME: ${{ needs.build-bundle.outputs.bundle_name }}
+      BUNDLE_SHA256: ${{ needs.build-bundle.outputs.bundle_sha256 }}
+      BUNDLE_SIZE: ${{ needs.build-bundle.outputs.bundle_size }}
+      PYTHON_VERSION: ${{ needs.build-bundle.outputs.python_version }}
+      PYTORCH_VERSION: ${{ needs.build-bundle.outputs.pytorch_version }}
+      CUDA_VERSION: ${{ needs.build-bundle.outputs.cuda_version }}
+      NODE_COUNT: ${{ needs.build-bundle.outputs.node_count }}
+      NODE_LIST: ${{ needs.build-bundle.outputs.node_list }}
     steps:
-      - uses: actions/checkout@v4
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
 
-      - name: Update portable-bundle-version.txt
+      - name: Install SDK
+        run: pip install huggingface_hub modelscope
+
+      - name: Update distributions_manifest.json
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+          MODELSCOPE_API_TOKEN: ${{ secrets.MODELSCOPE_API_TOKEN }}
         run: |
-          echo "${{ needs.check-release.outputs.version }}" > .github/portable-bundle-version.txt
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add .github/portable-bundle-version.txt
-          git commit -m "ci: update portable bundle version to ${{ needs.check-release.outputs.version }}"
-          git push
+          python3 << 'PYEOF'
+          import json, os, datetime, tempfile, sys
+
+          hf_repo    = os.environ["HF_REPO"]
+          ms_repo    = os.environ["MS_REPO"]
+          ms_endpoint = os.environ["MS_ENDPOINT"]
+          dist_dir   = os.environ["DIST_DIR"]
+          manifest_name = os.environ["MANIFEST_NAME"]
+
+          version      = os.environ["COMFYUI_VERSION"]
+          tier         = os.environ["NODE_TIER"]
+          bundle_name  = os.environ["BUNDLE_NAME"]
+          sha256       = os.environ["BUNDLE_SHA256"]
+          size_bytes   = int(os.environ["BUNDLE_SIZE"])
+          python_ver   = os.environ["PYTHON_VERSION"]
+          pytorch_ver  = os.environ["PYTORCH_VERSION"]
+          cuda_ver     = os.environ["CUDA_VERSION"]
+          node_count   = int(os.environ.get("NODE_COUNT", "0"))
+          node_list    = os.environ.get("NODE_LIST", "[]")
+
+          try:
+              nodes = json.loads(node_list)
+          except (json.JSONDecodeError, TypeError):
+              nodes = []
+
+          bundle_key = f"{version}_nvidia_{tier}"
+          today = datetime.date.today().isoformat()
+
+          # ── Fetch existing manifest from HuggingFace ──────────────
+          manifest = {
+              "_manifest_version": 1,
+              "_updated": today,
+              "_description": "Portable UmeAiRT-ComfyUI bundle registry. Lists all pre-built distributions with metadata.",
+              "_sources": {
+                  "huggingface": f"https://huggingface.co/{hf_repo}/resolve/main/{dist_dir}/",
+                  "modelscope": f"{ms_endpoint}/datasets/{ms_repo}/resolve/master/{dist_dir}/",
+              },
+              "distributions": {},
+          }
+
+          from huggingface_hub import HfApi, hf_hub_download
+          hf_api = HfApi()
+
+          try:
+              path = hf_hub_download(
+                  repo_id=hf_repo,
+                  filename=manifest_name,
+                  repo_type="model",
+              )
+              with open(path) as f:
+                  existing = json.load(f)
+              # Preserve existing distributions
+              manifest["distributions"] = existing.get("distributions", {})
+              print(f"Loaded existing manifest with {len(manifest['distributions'])} entries.")
+          except Exception as e:
+              print(f"No existing manifest found ({e}), creating new one.")
+
+          # ── Add / update this build entry ──────────────────────────
+          manifest["_updated"] = today
+          manifest["distributions"][bundle_key] = {
+              "filename": f"{dist_dir}/{bundle_name}",
+              "comfyui_version": version,
+              "platform": "windows",
+              "gpu": "nvidia",
+              "cuda_version": cuda_ver,
+              "python_version": python_ver,
+              "pytorch_version": pytorch_ver,
+              "node_tier": tier,
+              "node_count": node_count,
+              "nodes": nodes,
+              "sha256": sha256,
+              "size_bytes": size_bytes,
+              "built_at": datetime.datetime.utcnow().isoformat() + "Z",
+          }
+
+          print(f"Added/updated entry: {bundle_key}")
+          print(f"  File: {dist_dir}/{bundle_name}")
+          print(f"  Size: {size_bytes / (1024**3):.2f} GB")
+          print(f"  SHA-256: {sha256}")
+          print(f"  Python {python_ver}, PyTorch {pytorch_ver}, CUDA {cuda_ver}")
+          print(f"  {node_count} custom nodes ({tier} tier)")
+
+          # ── Write to temp file ─────────────────────────────────────
+          manifest_path = os.path.join(tempfile.gettempdir(), manifest_name)
+          with open(manifest_path, "w") as f:
+              json.dump(manifest, f, indent=2)
+
+          # ── Upload to HuggingFace ──────────────────────────────────
+          print(f"\nUploading manifest to HuggingFace ({hf_repo})...")
+          hf_api.upload_file(
+              path_or_fileobj=manifest_path,
+              path_in_repo=manifest_name,
+              repo_id=hf_repo,
+              repo_type="model",
+              commit_message=f"CI: Update distributions manifest — {bundle_key}",
+          )
+          print("✅ Manifest uploaded to HuggingFace!")
+
+          # ── Upload to ModelScope ───────────────────────────────────
+          try:
+              from modelscope.hub.api import HubApi
+              ms_api = HubApi()
+              ms_api.login(os.environ["MODELSCOPE_API_TOKEN"])
+              print(f"Uploading manifest to ModelScope ({ms_repo})...")
+              ms_api.upload_file(
+                  path_or_fileobj=manifest_path,
+                  path_in_repo=manifest_name,
+                  repo_id=ms_repo,
+                  repo_type="dataset",
+                  endpoint=ms_endpoint,
+                  commit_message=f"CI: Update distributions manifest — {bundle_key}",
+              )
+              print("✅ Manifest uploaded to ModelScope!")
+          except Exception as e:
+              print(f"⚠️ ModelScope upload failed (non-blocking): {e}", file=sys.stderr)
+
+          print(f"\nManifest now contains {len(manifest['distributions'])} distribution(s).")
+          PYEOF
