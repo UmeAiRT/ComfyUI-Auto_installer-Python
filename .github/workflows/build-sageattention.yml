@@ -24,6 +24,9 @@ env:
   # HuggingFace repo where wheels are uploaded
   HF_REPO: UmeAiRT/ComfyUI-Auto-Installer-Assets
   HF_WHEEL_DIR: whl
+  # ModelScope mirror (international .ai endpoint)
+  MS_REPO: UmeAiRT/ComfyUI-Auto-Installer-Assets
+  MS_ENDPOINT: "https://www.modelscope.ai"
   # PyTorch version must match the one in dependencies.json
   TORCH_VERSION: "2.10.0"
   TORCH_INDEX: "https://download.pytorch.org/whl/cu130"
@@ -107,6 +110,31 @@ jobs:
               print('Done.')
           "
 
+      - name: Upload wheel to ModelScope
+        continue-on-error: true
+        env:
+          MODELSCOPE_API_TOKEN: ${{ secrets.MODELSCOPE_API_TOKEN }}
+        run: |
+          uv pip install --python $VENV_PYTHON modelscope
+          $VENV_PYTHON -c "
+          from modelscope.hub.api import HubApi
+          import glob, os
+          api = HubApi()
+          api.login(os.environ['MODELSCOPE_API_TOKEN'])
+          for whl in glob.glob('/wheels/*.whl'):
+              name = os.path.basename(whl)
+              print(f'Uploading {name} to ModelScope...')
+              api.upload_file(
+                  path_or_fileobj=whl,
+                  path_in_repo='${{ env.HF_WHEEL_DIR }}/' + name,
+                  repo_id='${{ env.MS_REPO }}',
+                  repo_type='dataset',
+                  endpoint='${{ env.MS_ENDPOINT }}',
+                  commit_message='CI: Upload SageAttention wheel',
+              )
+              print('Done.')
+          "
+
       - name: Upload wheel as artifact
         uses: actions/upload-artifact@v4
         with:
@@ -184,6 +212,15 @@ jobs:
         run: |
           uv pip install --python C:\build-venv\Scripts\python.exe huggingface_hub
           C:\build-venv\Scripts\python.exe -c "from huggingface_hub import HfApi; import glob, os; api = HfApi(); [print(f'Uploading {os.path.basename(w)}...') or api.upload_file(path_or_fileobj=w, path_in_repo='${{ env.HF_WHEEL_DIR }}/' + os.path.basename(w), repo_id='${{ env.HF_REPO }}', repo_type='model') or print('Done.') for w in glob.glob('C:\\wheels\\*.whl')]"
+
+      - name: Upload wheel to ModelScope
+        continue-on-error: true
+        env:
+          MODELSCOPE_API_TOKEN: ${{ secrets.MODELSCOPE_API_TOKEN }}
+        shell: cmd
+        run: |
+          uv pip install --python C:\build-venv\Scripts\python.exe modelscope
+          C:\build-venv\Scripts\python.exe -c "from modelscope.hub.api import HubApi; import glob, os; api = HubApi(); api.login(os.environ['MODELSCOPE_API_TOKEN']); [print(f'Uploading {os.path.basename(w)} to ModelScope...') or api.upload_file(path_or_fileobj=w, path_in_repo='${{ env.HF_WHEEL_DIR }}/' + os.path.basename(w), repo_id='${{ env.MS_REPO }}', repo_type='dataset', endpoint='${{ env.MS_ENDPOINT }}', commit_message='CI: Upload SageAttention wheel') or print('Done.') for w in glob.glob('C:\\wheels\\*.whl')]"
 
       - name: Upload wheel as artifact
         uses: actions/upload-artifact@v4
@@ -270,6 +307,31 @@ jobs:
                   path_in_repo='${{ env.HF_WHEEL_DIR }}/' + whl.split('/')[-1],
                   repo_id='${{ env.HF_REPO }}',
                   repo_type='model',
+              )
+              print('Done.')
+          "
+
+      - name: Upload wheel to ModelScope
+        continue-on-error: true
+        env:
+          MODELSCOPE_API_TOKEN: ${{ secrets.MODELSCOPE_API_TOKEN }}
+        run: |
+          uv pip install --python $VENV_PYTHON modelscope
+          $VENV_PYTHON -c "
+          from modelscope.hub.api import HubApi
+          import glob, os
+          api = HubApi()
+          api.login(os.environ['MODELSCOPE_API_TOKEN'])
+          for whl in glob.glob('/wheels/*.whl'):
+              name = os.path.basename(whl)
+              print(f'Uploading {name} to ModelScope...')
+              api.upload_file(
+                  path_or_fileobj=whl,
+                  path_in_repo='${{ env.HF_WHEEL_DIR }}/' + name,
+                  repo_id='${{ env.MS_REPO }}',
+                  repo_type='dataset',
+                  endpoint='${{ env.MS_ENDPOINT }}',
+                  commit_message='CI: Upload SageAttention wheel',
               )
               print('Done.')
           "
@@ -429,5 +491,28 @@ jobs:
               repo_id=repo_id,
               repo_type="model",
           )
-          print("\n✅ Manifest uploaded successfully!")
+          print("\n✅ Manifest uploaded to HuggingFace!")
+          PYEOF
+
+      - name: Upload manifest to ModelScope
+        continue-on-error: true
+        env:
+          MODELSCOPE_API_TOKEN: ${{ secrets.MODELSCOPE_API_TOKEN }}
+        run: |
+          uv pip install --python /tmp/venv/bin/python modelscope
+          /tmp/venv/bin/python <<'PYEOF'
+          from modelscope.hub.api import HubApi
+          import os
+          api = HubApi()
+          api.login(os.environ["MODELSCOPE_API_TOKEN"])
+          print("Uploading tools_manifest.json to ModelScope...")
+          api.upload_file(
+              path_or_fileobj="/tmp/tools_manifest.json",
+              path_in_repo="tools_manifest.json",
+              repo_id="${{ env.MS_REPO }}",
+              repo_type="dataset",
+              endpoint="${{ env.MS_ENDPOINT }}",
+              commit_message="CI: Update tools_manifest.json",
+          )
+          print("\n✅ Manifest uploaded to ModelScope!")
           PYEOF
