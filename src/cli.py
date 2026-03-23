@@ -22,37 +22,37 @@ from src.utils.prompts import set_non_interactive
 app = typer.Typer(
     name="umeairt-comfyui-installer",
     help="UmeAiRT ComfyUI — Interactive installer and launcher.",
-    no_args_is_help=False,
+    no_args_is_help=True,
     rich_markup_mode="rich",
-    invoke_without_command=True,
 )
 
 
-@app.callback()
-def main(
-    ctx: typer.Context,
-    path: Path = typer.Option(
-        Path.cwd(),
-        "--path", "-p",
-        help="Installation directory for ComfyUI.",
-    ),
-) -> None:
-    """UmeAiRT ComfyUI — Interactive installer and launcher."""
-    if ctx.invoked_subcommand is not None:
+def main() -> None:
+    """Entry point: TUI if no args, Typer CLI otherwise."""
+    # If called with no subcommand args, launch TUI
+    # (allow --help, --path etc. to pass through to Typer)
+    args = sys.argv[1:]
+    if not args or (len(args) == 2 and args[0] in ("--path", "-p")):
+        from src.tui.app import run_tui
+
+        install_path = Path.cwd()
+        if len(args) == 2 and args[0] in ("--path", "-p"):
+            install_path = Path(args[1].strip('"'))
+
+        result = run_tui(install_path=install_path)
+
+        # If TUI returned a command name, run it in the terminal
+        if isinstance(result, str):
+            import subprocess
+
+            console.print(f"\n[dim]Running: umeairt-comfyui-installer {result} --path {install_path}[/dim]\n")
+            subprocess.run(  # noqa: S603
+                [sys.executable, "-m", "src.cli", result, "--path", str(install_path)],
+            )
         return
 
-    from src.tui.app import run_tui
-
-    result = run_tui(install_path=path)
-
-    # If TUI returned a command name, run it in the terminal
-    if isinstance(result, str):
-        import subprocess
-
-        console.print(f"\n[dim]Running: umeairt-comfyui-installer {result} --path {path}[/dim]\n")
-        subprocess.run(  # noqa: S603
-            [sys.executable, "-m", "umeairt_comfyui_installer", result, "--path", str(path)],
-        )
+    # Otherwise delegate to Typer
+    app()
 
 
 
@@ -397,4 +397,4 @@ def version() -> None:
 
 
 if __name__ == "__main__":
-    app()
+    main()

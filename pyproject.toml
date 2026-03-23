@@ -54,7 +54,7 @@ docs = [
 ]
 
 [project.scripts]
-umeairt-comfyui-installer = "src.cli:app"
+umeairt-comfyui-installer = "src.cli:main"
 
 [tool.ruff]
 target-version = "py311"
