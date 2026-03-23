@@ -64,6 +64,7 @@ class HomeScreen(Screen):
 
     def compose(self) -> ComposeResult:
         """Build the home screen layout."""
+        yield Header(show_clock=True)
         with Vertical(id="home-container"):
             yield Static(LOGO, id="logo-panel")
             yield Static(_get_system_summary(), id="system-info-bar")
@@ -109,6 +110,7 @@ class HomeScreen(Screen):
                     id="btn-exit",
                     classes="menu-button -danger",
                 )
+        yield Footer()
 
     def on_button_pressed(self, event: Button.Pressed) -> None:
         """Handle menu button clicks."""

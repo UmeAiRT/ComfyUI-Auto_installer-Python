@@ -34,18 +34,13 @@ class UmeAiRTApp(App):
         self.install_path = install_path or Path.cwd()
         self.user_settings = UserSettings.load(self.install_path)
 
-    def compose(self) -> ComposeResult:
-        """Create the initial layout."""
-        from textual.widgets import Footer, Header
-
-        yield Header(show_clock=True)
+    def on_mount(self) -> None:
+        """Push the home screen on startup."""
         from src.tui.screens.home import HomeScreen
-        yield HomeScreen(self.install_path, self.user_settings)
-        yield Footer()
+        self.push_screen(HomeScreen(self.install_path, self.user_settings))
 
     def action_back(self) -> None:
         """Handle back/escape action."""
-        # If we have screens on the stack, pop them
         if len(self.screen_stack) > 1:
             self.pop_screen()
 
@@ -58,4 +53,4 @@ class UmeAiRTApp(App):
 def run_tui(install_path: Path | None = None) -> None:
     """Launch the TUI application."""
     app = UmeAiRTApp(install_path=install_path)
-    app.run()
+    return app.run()
