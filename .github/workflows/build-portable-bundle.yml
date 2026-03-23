@@ -50,6 +50,8 @@ jobs:
       download_url: ${{ steps.check.outputs.download_url }}
       node_tier: ${{ steps.check.outputs.node_tier }}
     steps:
+      - uses: actions/checkout@v4
+
       - name: Check latest ComfyUI release
         id: check
         env:
@@ -59,22 +61,20 @@ jobs:
           INPUT_TIER: ${{ github.event.inputs.node_tier || 'umeairt' }}
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
         run: |
+          set -euo pipefail
           echo "node_tier=$INPUT_TIER" >> "$GITHUB_OUTPUT"
 
           # Get the target version (input override or latest release)
           if [ -n "$INPUT_VERSION" ]; then
             VERSION="$INPUT_VERSION"
             echo "Using manually specified version: $VERSION"
-            # When a version is specified, try to find its release (may differ from /latest)
-            DOWNLOAD_URL=$(curl -sf -H "Authorization: token $GH_TOKEN" \
-              "https://api.github.com/repos/${{ env.COMFYUI_REPO }}/releases/tags/$VERSION" | \
-              python3 -c "import sys,json; d=json.load(sys.stdin); print(next((a['browser_download_url'] for a in d.get('assets',[]) if a['name']=='ComfyUI_windows_portable_nvidia.7z'),''))" 2>/dev/null || echo "")
+            DOWNLOAD_URL=$(gh api "repos/${{ env.COMFYUI_REPO }}/releases/tags/$VERSION" \
+              --jq '.assets[] | select(.name == "ComfyUI_windows_portable_nvidia.7z") | .browser_download_url' 2>/dev/null || echo "")
           else
-            RELEASE_JSON=$(curl -sf -H "Authorization: token $GH_TOKEN" \
-              "https://api.github.com/repos/${{ env.COMFYUI_REPO }}/releases/latest")
-            VERSION=$(echo "$RELEASE_JSON" | python3 -c "import sys,json; print(json.load(sys.stdin)['tag_name'])")
-            DOWNLOAD_URL=$(echo "$RELEASE_JSON" | python3 -c "import sys,json; d=json.load(sys.stdin); print(next((a['browser_download_url'] for a in d.get('assets',[]) if a['name']=='ComfyUI_windows_portable_nvidia.7z'),''))")
+            VERSION=$(gh api "repos/${{ env.COMFYUI_REPO }}/releases/latest" --jq '.tag_name')
             echo "Latest ComfyUI release: $VERSION"
+            DOWNLOAD_URL=$(gh api "repos/${{ env.COMFYUI_REPO }}/releases/latest" \
+              --jq '.assets[] | select(.name == "ComfyUI_windows_portable_nvidia.7z") | .browser_download_url')
           fi
 
           if [ -z "$DOWNLOAD_URL" ]; then
@@ -87,15 +87,12 @@ jobs:
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
           echo "download_url=$DOWNLOAD_URL" >> "$GITHUB_OUTPUT"
 
-          # Fetch current distributions_manifest.json from HuggingFace
+          # Check if this version+tier was already built (query distributions_manifest.json on HF)
           MANIFEST_URL="https://huggingface.co/${{ env.HF_REPO }}/resolve/main/${{ env.MANIFEST_NAME }}"
           BUNDLE_KEY="${VERSION}_nvidia_${INPUT_TIER}"
           ALREADY_BUILT="false"
 
-          HTTP_CODE=$(curl -sf -o /tmp/dist_manifest.json -w "%{http_code}" \
-            -H "Authorization: Bearer $HF_TOKEN" "$MANIFEST_URL" 2>/dev/null || echo "000")
-
-          if [ "$HTTP_CODE" = "200" ] && [ -f /tmp/dist_manifest.json ]; then
+          if curl -sfL -o /tmp/dist_manifest.json "$MANIFEST_URL" 2>/dev/null; then
             echo "Existing manifest found, checking for $BUNDLE_KEY..."
             ALREADY_BUILT=$(python3 -c "
           import json
@@ -104,7 +101,7 @@ jobs:
           print('true' if '$BUNDLE_KEY' in m.get('distributions', {}) else 'false')
           " 2>/dev/null || echo "false")
           else
-            echo "No existing manifest found (HTTP $HTTP_CODE) — first build."
+            echo "No existing manifest found — first build."
           fi
 
           echo "Already built: $ALREADY_BUILT"
