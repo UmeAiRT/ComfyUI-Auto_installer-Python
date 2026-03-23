@@ -75,10 +75,10 @@ class HomeScreen(Screen):
         Binding("6", "menu_6", "Info", show=False),
         Binding("7", "menu_7", "Settings", show=False),
         Binding("8", "menu_8", "Exit", show=False),
-        Binding("up", "focus_previous", "Up", show=False, priority=True),
-        Binding("down", "focus_next", "Down", show=False, priority=True),
-        Binding("k", "focus_previous", "Up", show=False),
-        Binding("j", "focus_next", "Down", show=False),
+        Binding("up", "move_up", "Up", show=False, priority=True),
+        Binding("down", "move_down", "Down", show=False, priority=True),
+        Binding("k", "move_up", show=False),
+        Binding("j", "move_down", show=False),
         Binding("enter", "press_focused", "Select", show=False, priority=True),
     ]
 
@@ -178,6 +178,25 @@ class HomeScreen(Screen):
         self._press_button(7)
 
     # ── Arrow key navigation ────────────────────────────────────────
+    def _get_focused_index(self) -> int:
+        """Return the index of the currently focused button, or -1."""
+        focused = self.focused
+        if isinstance(focused, Button) and focused.id in MENU_BUTTONS:
+            return MENU_BUTTONS.index(focused.id)
+        return -1
+
+    def action_move_down(self) -> None:
+        """Move focus to the next menu button."""
+        idx = self._get_focused_index()
+        next_idx = (idx + 1) % len(MENU_BUTTONS)
+        self.query_one(f"#{MENU_BUTTONS[next_idx]}", Button).focus()
+
+    def action_move_up(self) -> None:
+        """Move focus to the previous menu button."""
+        idx = self._get_focused_index()
+        prev_idx = (idx - 1) % len(MENU_BUTTONS)
+        self.query_one(f"#{MENU_BUTTONS[prev_idx]}", Button).focus()
+
     def action_press_focused(self) -> None:
         """Press the currently focused button."""
         focused = self.focused
