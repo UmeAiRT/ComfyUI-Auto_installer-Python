@@ -326,12 +326,16 @@ jobs:
           Write-Host "Installed $nodeCount custom nodes."
           exit 0
 
-      # ── SageAttention wheels ──────────────────────────────────────
-      - name: Install SageAttention wheels
+      # ── Triton + SageAttention ────────────────────────────────────
+      - name: Install Triton + SageAttention
         shell: pwsh
         continue-on-error: true
         run: |
           $python = "$env:PORTABLE\python_embeded\python.exe"
+
+          # Triton is required by SageAttention at runtime
+          Write-Host "Installing triton-windows..."
+          & $python -m pip install triton-windows --quiet 2>&1 | ForEach-Object { Write-Host "  $_" }
 
           # Determine Python version tag (e.g. cp313)
           $pyVer = & $python -c "import sys; print(f'cp{sys.version_info.major}{sys.version_info.minor}')"
