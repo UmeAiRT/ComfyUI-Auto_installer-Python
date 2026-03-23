@@ -239,14 +239,21 @@ jobs:
           $extractPath = "$env:TEMP\python_dev"
           try {
             Invoke-WebRequest -Uri $nugetUrl -OutFile $nupkgPath -UseBasicParsing
-            Expand-Archive $nupkgPath -DestinationPath $extractPath -Force
+            # NuGet packages are ZIP files but Expand-Archive requires .zip extension
+            $zipPath = "$env:TEMP\python_dev.zip"
+            Copy-Item $nupkgPath $zipPath -Force
+            Expand-Archive $zipPath -DestinationPath $extractPath -Force
+            Remove-Item $zipPath -Force -ErrorAction SilentlyContinue
             $toolsDir = "$extractPath\tools"
+            # Copy contents (not the directory itself) to avoid nested include/include/
             if (Test-Path "$toolsDir\include") {
-              Copy-Item "$toolsDir\include" "$env:PORTABLE\python_embeded\include" -Recurse -Force
+              New-Item -ItemType Directory -Force -Path "$env:PORTABLE\python_embeded\include" | Out-Null
+              Copy-Item "$toolsDir\include\*" "$env:PORTABLE\python_embeded\include\" -Recurse -Force
               Write-Host "  ✓ include/ (Python.h) installed"
             }
             if (Test-Path "$toolsDir\libs") {
-              Copy-Item "$toolsDir\libs" "$env:PORTABLE\python_embeded\libs" -Recurse -Force
+              New-Item -ItemType Directory -Force -Path "$env:PORTABLE\python_embeded\libs" | Out-Null
+              Copy-Item "$toolsDir\libs\*" "$env:PORTABLE\python_embeded\libs\" -Recurse -Force
               Write-Host "  ✓ libs/ (python3xx.lib) installed"
             }
           } catch {
