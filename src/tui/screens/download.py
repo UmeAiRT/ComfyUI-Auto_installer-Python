@@ -108,7 +108,7 @@ class DownloadScreen(Screen):
             f"⬇️ [b]Model Downloader[/b]\n\n"
             f"[b]GPU VRAM:[/b] {vram_str}  •  "
             f"[dim]Select a model to download[/dim]",
-            id="dl-title",
+            classes="dl-title",
         ))
 
         self._button_ids = []
@@ -167,7 +167,7 @@ class DownloadScreen(Screen):
         content.mount(Static(
             f"⬇️ [b]{family} — {model_name}[/b]\n\n"
             f"[dim]Choose a quality variant to download[/dim]",
-            id="dl-title",
+            classes="dl-title",
         ))
 
         self._button_ids = []

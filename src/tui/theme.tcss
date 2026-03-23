@@ -204,7 +204,7 @@ Switch {
     align: center top;
 }
 
-#dl-title {
+.dl-title {
     width: 70;
     height: auto;
     content-align: center middle;
