@@ -2,6 +2,7 @@
 Home Screen — Main menu for UmeAiRT ComfyUI TUI.
 
 Shows the logo, system info bar, and action buttons.
+Supports mouse clicks, Tab navigation, and number key shortcuts.
 """
 
 from __future__ import annotations
@@ -10,7 +11,8 @@ import sys
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-from textual.containers import Center, Vertical
+from textual.binding import Binding
+from textual.containers import Center, VerticalScroll
 from textual.screen import Screen
 from textual.widgets import Button, Footer, Header, Static
 
@@ -26,6 +28,18 @@ LOGO = r"""
  ╚═╝┴ ┴└─┘╩ ╩┴╩╚═ ╩
   ── ComfyUI ──
 """
+
+# Map button IDs to their index for keyboard focus
+MENU_BUTTONS = [
+    "btn-launch",
+    "btn-download",
+    "btn-update",
+    "btn-install",
+    "btn-scan",
+    "btn-info",
+    "btn-settings",
+    "btn-exit",
+]
 
 
 def _get_system_summary() -> str:
@@ -52,6 +66,20 @@ def _get_system_summary() -> str:
 class HomeScreen(Screen):
     """Main menu screen."""
 
+    BINDINGS = [
+        Binding("1", "menu_1", "Launch", show=False),
+        Binding("2", "menu_2", "Download", show=False),
+        Binding("3", "menu_3", "Update", show=False),
+        Binding("4", "menu_4", "Install", show=False),
+        Binding("5", "menu_5", "Scan", show=False),
+        Binding("6", "menu_6", "Info", show=False),
+        Binding("7", "menu_7", "Settings", show=False),
+        Binding("8", "menu_8", "Exit", show=False),
+        Binding("up,k", "focus_previous", "Up", show=False),
+        Binding("down,j", "focus_next", "Down", show=False),
+        Binding("enter", "press_focused", "Select", show=False),
+    ]
+
     def __init__(
         self,
         install_path: Path,
@@ -65,53 +93,96 @@ class HomeScreen(Screen):
     def compose(self) -> ComposeResult:
         """Build the home screen layout."""
         yield Header(show_clock=True)
-        with Vertical(id="home-container"):
+        with VerticalScroll(id="home-container"):
             yield Static(LOGO, id="logo-panel")
             yield Static(_get_system_summary(), id="system-info-bar")
 
             with Center(id="menu-container"):
                 yield Button(
-                    "🚀  Launch ComfyUI",
+                    "1 │ 🚀  Launch ComfyUI",
                     id="btn-launch",
                     classes="menu-button -primary",
                 )
                 yield Button(
-                    "⬇️   Download Models",
+                    "2 │ ⬇️   Download Models",
                     id="btn-download",
                     classes="menu-button",
                 )
                 yield Button(
-                    "🔄  Update ComfyUI + Nodes",
+                    "3 │ 🔄  Update ComfyUI + Nodes",
                     id="btn-update",
                     classes="menu-button",
                 )
                 yield Button(
-                    "🔧  Install (first-time setup)",
+                    "4 │ 🔧  Install (first-time setup)",
                     id="btn-install",
                     classes="menu-button",
                 )
                 yield Button(
-                    "🔍  Scan Models (security)",
+                    "5 │ 🔍  Scan Models (security)",
                     id="btn-scan",
                     classes="menu-button",
                 )
                 yield Button(
-                    "ℹ️   System Info",
+                    "6 │ ℹ️   System Info",
                     id="btn-info",
                     classes="menu-button",
                 )
                 yield Button(
-                    "⚙️   Settings",
+                    "7 │ ⚙️   Settings",
                     id="btn-settings",
                     classes="menu-button",
                 )
                 yield Button(
-                    "❌  Exit",
+                    "8 │ ❌  Exit",
                     id="btn-exit",
                     classes="menu-button -danger",
                 )
         yield Footer()
 
+    def on_mount(self) -> None:
+        """Focus the first button on mount."""
+        self.query_one("#btn-launch", Button).focus()
+
+    # ── Number key shortcuts ────────────────────────────────────────
+    def _press_button(self, index: int) -> None:
+        """Simulate pressing a button by index."""
+        if 0 <= index < len(MENU_BUTTONS):
+            btn = self.query_one(f"#{MENU_BUTTONS[index]}", Button)
+            btn.press()
+
+    def action_menu_1(self) -> None:
+        self._press_button(0)
+
+    def action_menu_2(self) -> None:
+        self._press_button(1)
+
+    def action_menu_3(self) -> None:
+        self._press_button(2)
+
+    def action_menu_4(self) -> None:
+        self._press_button(3)
+
+    def action_menu_5(self) -> None:
+        self._press_button(4)
+
+    def action_menu_6(self) -> None:
+        self._press_button(5)
+
+    def action_menu_7(self) -> None:
+        self._press_button(6)
+
+    def action_menu_8(self) -> None:
+        self._press_button(7)
+
+    # ── Arrow key navigation ────────────────────────────────────────
+    def action_press_focused(self) -> None:
+        """Press the currently focused button."""
+        focused = self.focused
+        if isinstance(focused, Button):
+            focused.press()
+
+    # ── Button handlers ─────────────────────────────────────────────
     def on_button_pressed(self, event: Button.Pressed) -> None:
         """Handle menu button clicks."""
         button_id = event.button.id
