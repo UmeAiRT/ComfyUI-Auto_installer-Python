@@ -102,5 +102,5 @@ jobs:
 
       - name: Run tests with coverage
         run: |
-          coverage run --source=src --omit="src/tui/*,src/settings.py" -m pytest tests/ -q -m "not integration"
+          coverage run --source=src --omit="src/tui/*" -m pytest tests/ -q -m "not integration"
           coverage report -m --skip-covered --fail-under=70
