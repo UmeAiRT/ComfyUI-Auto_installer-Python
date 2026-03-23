@@ -532,6 +532,7 @@ jobs:
         shell: pwsh
         env:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
+          PYTHONUTF8: '1'
         run: |
           $python = "$env:PORTABLE\python_embeded\python.exe"
           & $python -c @"
@@ -549,7 +550,7 @@ jobs:
               repo_id=repo,
               repo_type='model',
           )
-          print('✅ Uploaded to HuggingFace!')
+          print('[OK] Uploaded to HuggingFace!')
           "@
 
       # ── Upload to ModelScope ──────────────────────────────────────
@@ -558,6 +559,7 @@ jobs:
         shell: pwsh
         env:
           MODELSCOPE_API_TOKEN: ${{ secrets.MODELSCOPE_API_TOKEN }}
+          PYTHONUTF8: '1'
         run: |
           $python = "$env:PORTABLE\python_embeded\python.exe"
           & $python -m pip install modelscope --quiet
@@ -580,7 +582,7 @@ jobs:
               endpoint=endpoint,
               commit_message=f'CI: Upload portable bundle {name}',
           )
-          print('✅ Uploaded to ModelScope!')
+          print('[OK] Uploaded to ModelScope!')
           "@
 
   # ---------------------------------------------------------------------------
@@ -712,7 +714,7 @@ jobs:
               repo_type="model",
               commit_message=f"CI: Update distributions manifest — {bundle_key}",
           )
-          print("✅ Manifest uploaded to HuggingFace!")
+          print("[OK] Manifest uploaded to HuggingFace!")
 
           # ── Upload to ModelScope ───────────────────────────────────
           try:
@@ -728,9 +730,9 @@ jobs:
                   endpoint=ms_endpoint,
                   commit_message=f"CI: Update distributions manifest — {bundle_key}",
               )
-              print("✅ Manifest uploaded to ModelScope!")
+              print("[OK] Manifest uploaded to ModelScope!")
           except Exception as e:
-              print(f"⚠️ ModelScope upload failed (non-blocking): {e}", file=sys.stderr)
+              print(f"[WARN] ModelScope upload failed (non-blocking): {e}", file=sys.stderr)
 
           print(f"\nManifest now contains {len(manifest['distributions'])} distribution(s).")
           PYEOF
