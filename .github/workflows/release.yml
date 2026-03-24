@@ -114,3 +114,62 @@ jobs:
           prerelease: ${{ contains(steps.version.outputs.version, 'a') || contains(steps.version.outputs.version, 'b') || contains(steps.version.outputs.version, 'rc') }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  # ── Mirror release ZIP to HuggingFace + ModelScope ──────────────
+  mirror:
+    needs: release
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Extract version
+        id: version
+        run: echo "version=${GITHUB_REF#refs/tags/v}" >> "$GITHUB_OUTPUT"
+
+      - name: Create source ZIP
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          git archive --format=zip --prefix=ComfyUI-Auto_installer/ HEAD \
+            -o /tmp/ComfyUI-Auto_installer-latest.zip
+          echo "--- ZIP created ---"
+          ls -lh /tmp/ComfyUI-Auto_installer-latest.zip
+          sha256sum /tmp/ComfyUI-Auto_installer-latest.zip
+
+      - name: Upload to HuggingFace
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+        run: |
+          pip install huggingface_hub
+          python3 -c "
+          from huggingface_hub import HfApi
+          api = HfApi()
+          api.upload_file(
+              path_or_fileobj='/tmp/ComfyUI-Auto_installer-latest.zip',
+              path_in_repo='releases/ComfyUI-Auto_installer-latest.zip',
+              repo_id='UmeAiRT/ComfyUI-Auto-Installer-Assets',
+              repo_type='model',
+              commit_message='CI: Upload release ${{ steps.version.outputs.version }} ZIP',
+          )
+          print('Uploaded to HuggingFace.')
+          "
+
+      - name: Upload to ModelScope
+        continue-on-error: true
+        env:
+          MODELSCOPE_API_TOKEN: ${{ secrets.MODELSCOPE_API_TOKEN }}
+        run: |
+          pip install modelscope numpy
+          python3 -c "
+          from modelscope.hub.api import HubApi
+          import os
+          api = HubApi(endpoint='https://www.modelscope.ai')
+          api.login(os.environ['MODELSCOPE_API_TOKEN'])
+          api.upload_file(
+              path_or_fileobj='/tmp/ComfyUI-Auto_installer-latest.zip',
+              path_in_repo='releases/ComfyUI-Auto_installer-latest.zip',
+              repo_id='UmeAiRT/ComfyUI-Auto-Installer-Assets',
+              repo_type='dataset',
+              commit_message='CI: Upload release ${{ steps.version.outputs.version }} ZIP',
+          )
+          print('Uploaded to ModelScope.')
+          "
