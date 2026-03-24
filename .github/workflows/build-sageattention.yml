@@ -111,19 +111,29 @@ jobs:
           ls -lah /wheels/
           $VENV_PYTHON -c "
           from huggingface_hub import HfApi
-          import glob, os
+          import glob, os, time, random
           api = HfApi()
           for whl in glob.glob('/wheels/*.whl'):
               name = os.path.basename(whl)
               repo_path = '${{ env.HF_WHEEL_DIR }}/sm${{ matrix.cuda_arch_short }}/' + name
-              print(f'Uploading {name} → {repo_path}')
-              api.upload_file(
-                  path_or_fileobj=whl,
-                  path_in_repo=repo_path,
-                  repo_id='${{ env.HF_REPO }}',
-                  repo_type='model',
-              )
-              print('Done.')
+              for attempt in range(5):
+                  try:
+                      print(f'Uploading {name} → {repo_path} (attempt {attempt+1})')
+                      api.upload_file(
+                          path_or_fileobj=whl,
+                          path_in_repo=repo_path,
+                          repo_id='${{ env.HF_REPO }}',
+                          repo_type='model',
+                      )
+                      print('Done.')
+                      break
+                  except Exception as e:
+                      if '412' in str(e) and attempt < 4:
+                          wait = random.uniform(10, 30)
+                          print(f'Conflict (412), retrying in {wait:.0f}s...')
+                          time.sleep(wait)
+                      else:
+                          raise
           "
 
       - name: Upload wheel to ModelScope
@@ -238,14 +248,24 @@ jobs:
           Get-ChildItem C:\wheels
           C:\build-venv\Scripts\python.exe -c @"
           from huggingface_hub import HfApi
-          import glob, os
+          import glob, os, time, random
           api = HfApi()
           for w in glob.glob('C:\\wheels\\*.whl'):
               name = os.path.basename(w)
               repo_path = '${{ env.HF_WHEEL_DIR }}/sm${{ matrix.cuda_arch_short }}/' + name
-              print(f'Uploading {name} -> {repo_path}')
-              api.upload_file(path_or_fileobj=w, path_in_repo=repo_path, repo_id='${{ env.HF_REPO }}', repo_type='model')
-              print('Done.')
+              for attempt in range(5):
+                  try:
+                      print(f'Uploading {name} -> {repo_path} (attempt {attempt+1})')
+                      api.upload_file(path_or_fileobj=w, path_in_repo=repo_path, repo_id='${{ env.HF_REPO }}', repo_type='model')
+                      print('Done.')
+                      break
+                  except Exception as e:
+                      if '412' in str(e) and attempt < 4:
+                          wait = random.uniform(10, 30)
+                          print(f'Conflict (412), retrying in {wait:.0f}s...')
+                          time.sleep(wait)
+                      else:
+                          raise
           "@
 
       - name: Upload wheel to ModelScope
@@ -344,17 +364,28 @@ jobs:
           uv pip install --python $VENV_PYTHON huggingface_hub
           $VENV_PYTHON -c "
           from huggingface_hub import HfApi
-          import glob
+          import glob, time, random
           api = HfApi()
           for whl in glob.glob('/wheels/*.whl'):
-              print(f'Uploading {whl}...')
-              api.upload_file(
-                  path_or_fileobj=whl,
-                  path_in_repo='${{ env.HF_WHEEL_DIR }}/' + whl.split('/')[-1],
-                  repo_id='${{ env.HF_REPO }}',
-                  repo_type='model',
-              )
-              print('Done.')
+              name = whl.split('/')[-1]
+              for attempt in range(5):
+                  try:
+                      print(f'Uploading {name} (attempt {attempt+1})')
+                      api.upload_file(
+                          path_or_fileobj=whl,
+                          path_in_repo='${{ env.HF_WHEEL_DIR }}/' + name,
+                          repo_id='${{ env.HF_REPO }}',
+                          repo_type='model',
+                      )
+                      print('Done.')
+                      break
+                  except Exception as e:
+                      if '412' in str(e) and attempt < 4:
+                          wait = random.uniform(10, 30)
+                          print(f'Conflict (412), retrying in {wait:.0f}s...')
+                          time.sleep(wait)
+                      else:
+                          raise
           "
 
       - name: Upload wheel to ModelScope
@@ -534,13 +565,24 @@ jobs:
                   print(f"\n{key}:")
                   print(json.dumps(manifest["whl"][key], indent=2))
 
-          api.upload_file(
-              path_or_fileobj=manifest_out,
-              path_in_repo="tools_manifest.json",
-              repo_id=repo_id,
-              repo_type="model",
-          )
-          print("\n✅ Manifest uploaded to HuggingFace!")
+          for attempt in range(5):
+              try:
+                  api.upload_file(
+                      path_or_fileobj=manifest_out,
+                      path_in_repo="tools_manifest.json",
+                      repo_id=repo_id,
+                      repo_type="model",
+                  )
+                  print("\n✅ Manifest uploaded to HuggingFace!")
+                  break
+              except Exception as e:
+                  if "412" in str(e) and attempt < 4:
+                      import time, random
+                      wait = random.uniform(10, 30)
+                      print(f"Conflict (412), retrying in {wait:.0f}s...")
+                      time.sleep(wait)
+                  else:
+                      raise
           PYEOF
 
       - name: Upload manifest to ModelScope
