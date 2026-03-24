@@ -5,6 +5,28 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [5.1.2] — SageAttention Per-Architecture Builds & Bootstrap Fallback
+
+### Added
+
+- **Per-architecture SageAttention wheels** — SM80, SM86, SM89, SM90 (Linux), SM100 (RTX 5090) each get a dedicated wheel with natively compiled CUDA kernels. Resolves "SM89 kernel not available" errors on RTX 40XX GPUs.
+- **SM100 (Blackwell) support** — SA2 builds for RTX 5090 on both Linux and Windows.
+- **Bootstrap triple-source fallback** — `get.umeai.art` scripts now try GitHub (git), then HuggingFace (ZIP), then ModelScope (ZIP). Git is no longer a hard prerequisite on Windows.
+- **Release ZIP mirroring** — `release.yml` now uploads a `latest.zip` source archive to HuggingFace and ModelScope for fallback downloads.
+- **Bootstrap integrity check** — verifies `Install.bat` and `pyproject.toml` presence after download.
+
+### Fixed
+
+- **SageAttention checksum verification** — two-pass lookup (full path first, basename fallback) prevents stale checksums from the old flat manifest entry.
+- **InsightFace wheel restored** — pre-compiled Windows wheel reinstated in `dependencies.json` (was incorrectly moved to standard packages).
+- **UV detection** — `find_uv()` now checks the local `scripts/uv/` directory before the system PATH, correctly detecting the bootstrap-installed binary.
+- **ModelScope uploads** — removed invalid `endpoint=` parameter from `upload_file()` calls; endpoint is set on `HubApi()` constructor.
+- **SM90 Windows builds removed** — Hopper GPUs (H100/H200) are datacenter-only Linux hardware.
+
+### Changed
+
+- **416 tests** — all passing.
+
 ## [5.1.0] — TUI Manager & Launcher Consolidation
 
 ### Added
