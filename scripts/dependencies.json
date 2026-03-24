@@ -83,12 +83,12 @@
         "min_compute_capability": [8, 0],
         "max_compute_capability": [8, 0],
         "versions": {
-          "linux_cp311": "https://huggingface.co/UmeAiRT/ComfyUI-Auto-Installer-Assets/resolve/main/whl/sageattention-2.2.0+sm80-cp311-cp311-linux_x86_64.whl",
-          "linux_cp312": "https://huggingface.co/UmeAiRT/ComfyUI-Auto-Installer-Assets/resolve/main/whl/sageattention-2.2.0+sm80-cp312-cp312-linux_x86_64.whl",
-          "linux_cp313": "https://huggingface.co/UmeAiRT/ComfyUI-Auto-Installer-Assets/resolve/main/whl/sageattention-2.2.0+sm80-cp313-cp313-linux_x86_64.whl",
-          "cp311": "https://huggingface.co/UmeAiRT/ComfyUI-Auto-Installer-Assets/resolve/main/whl/sageattention-2.2.0+sm80-cp311-cp311-win_amd64.whl",
-          "cp312": "https://huggingface.co/UmeAiRT/ComfyUI-Auto-Installer-Assets/resolve/main/whl/sageattention-2.2.0+sm80-cp312-cp312-win_amd64.whl",
-          "cp313": "https://huggingface.co/UmeAiRT/ComfyUI-Auto-Installer-Assets/resolve/main/whl/sageattention-2.2.0+sm80-cp313-cp313-win_amd64.whl"
+          "linux_cp311": "https://huggingface.co/UmeAiRT/ComfyUI-Auto-Installer-Assets/resolve/main/whl/sm80/sageattention-2.2.0-cp311-cp311-linux_x86_64.whl",
+          "linux_cp312": "https://huggingface.co/UmeAiRT/ComfyUI-Auto-Installer-Assets/resolve/main/whl/sm80/sageattention-2.2.0-cp312-cp312-linux_x86_64.whl",
+          "linux_cp313": "https://huggingface.co/UmeAiRT/ComfyUI-Auto-Installer-Assets/resolve/main/whl/sm80/sageattention-2.2.0-cp313-cp313-linux_x86_64.whl",
+          "cp311": "https://huggingface.co/UmeAiRT/ComfyUI-Auto-Installer-Assets/resolve/main/whl/sm80/sageattention-2.2.0-cp311-cp311-win_amd64.whl",
+          "cp312": "https://huggingface.co/UmeAiRT/ComfyUI-Auto-Installer-Assets/resolve/main/whl/sm80/sageattention-2.2.0-cp312-cp312-win_amd64.whl",
+          "cp313": "https://huggingface.co/UmeAiRT/ComfyUI-Auto-Installer-Assets/resolve/main/whl/sm80/sageattention-2.2.0-cp313-cp313-win_amd64.whl"
         }
       },
       {
@@ -96,12 +96,12 @@
         "min_compute_capability": [8, 6],
         "max_compute_capability": [8, 6],
         "versions": {
-          "linux_cp311": "https://huggingface.co/UmeAiRT/ComfyUI-Auto-Installer-Assets/resolve/main/whl/sageattention-2.2.0+sm86-cp311-cp311-linux_x86_64.whl",
-          "linux_cp312": "https://huggingface.co/UmeAiRT/ComfyUI-Auto-Installer-Assets/resolve/main/whl/sageattention-2.2.0+sm86-cp312-cp312-linux_x86_64.whl",
-          "linux_cp313": "https://huggingface.co/UmeAiRT/ComfyUI-Auto-Installer-Assets/resolve/main/whl/sageattention-2.2.0+sm86-cp313-cp313-linux_x86_64.whl",
-          "cp311": "https://huggingface.co/UmeAiRT/ComfyUI-Auto-Installer-Assets/resolve/main/whl/sageattention-2.2.0+sm86-cp311-cp311-win_amd64.whl",
-          "cp312": "https://huggingface.co/UmeAiRT/ComfyUI-Auto-Installer-Assets/resolve/main/whl/sageattention-2.2.0+sm86-cp312-cp312-win_amd64.whl",
-          "cp313": "https://huggingface.co/UmeAiRT/ComfyUI-Auto-Installer-Assets/resolve/main/whl/sageattention-2.2.0+sm86-cp313-cp313-win_amd64.whl"
+          "linux_cp311": "https://huggingface.co/UmeAiRT/ComfyUI-Auto-Installer-Assets/resolve/main/whl/sm86/sageattention-2.2.0-cp311-cp311-linux_x86_64.whl",
+          "linux_cp312": "https://huggingface.co/UmeAiRT/ComfyUI-Auto-Installer-Assets/resolve/main/whl/sm86/sageattention-2.2.0-cp312-cp312-linux_x86_64.whl",
+          "linux_cp313": "https://huggingface.co/UmeAiRT/ComfyUI-Auto-Installer-Assets/resolve/main/whl/sm86/sageattention-2.2.0-cp313-cp313-linux_x86_64.whl",
+          "cp311": "https://huggingface.co/UmeAiRT/ComfyUI-Auto-Installer-Assets/resolve/main/whl/sm86/sageattention-2.2.0-cp311-cp311-win_amd64.whl",
+          "cp312": "https://huggingface.co/UmeAiRT/ComfyUI-Auto-Installer-Assets/resolve/main/whl/sm86/sageattention-2.2.0-cp312-cp312-win_amd64.whl",
+          "cp313": "https://huggingface.co/UmeAiRT/ComfyUI-Auto-Installer-Assets/resolve/main/whl/sm86/sageattention-2.2.0-cp313-cp313-win_amd64.whl"
         }
       },
       {
@@ -109,12 +109,12 @@
         "min_compute_capability": [8, 9],
         "max_compute_capability": [8, 9],
         "versions": {
-          "linux_cp311": "https://huggingface.co/UmeAiRT/ComfyUI-Auto-Installer-Assets/resolve/main/whl/sageattention-2.2.0+sm89-cp311-cp311-linux_x86_64.whl",
-          "linux_cp312": "https://huggingface.co/UmeAiRT/ComfyUI-Auto-Installer-Assets/resolve/main/whl/sageattention-2.2.0+sm89-cp312-cp312-linux_x86_64.whl",
-          "linux_cp313": "https://huggingface.co/UmeAiRT/ComfyUI-Auto-Installer-Assets/resolve/main/whl/sageattention-2.2.0+sm89-cp313-cp313-linux_x86_64.whl",
-          "cp311": "https://huggingface.co/UmeAiRT/ComfyUI-Auto-Installer-Assets/resolve/main/whl/sageattention-2.2.0+sm89-cp311-cp311-win_amd64.whl",
-          "cp312": "https://huggingface.co/UmeAiRT/ComfyUI-Auto-Installer-Assets/resolve/main/whl/sageattention-2.2.0+sm89-cp312-cp312-win_amd64.whl",
-          "cp313": "https://huggingface.co/UmeAiRT/ComfyUI-Auto-Installer-Assets/resolve/main/whl/sageattention-2.2.0+sm89-cp313-cp313-win_amd64.whl"
+          "linux_cp311": "https://huggingface.co/UmeAiRT/ComfyUI-Auto-Installer-Assets/resolve/main/whl/sm89/sageattention-2.2.0-cp311-cp311-linux_x86_64.whl",
+          "linux_cp312": "https://huggingface.co/UmeAiRT/ComfyUI-Auto-Installer-Assets/resolve/main/whl/sm89/sageattention-2.2.0-cp312-cp312-linux_x86_64.whl",
+          "linux_cp313": "https://huggingface.co/UmeAiRT/ComfyUI-Auto-Installer-Assets/resolve/main/whl/sm89/sageattention-2.2.0-cp313-cp313-linux_x86_64.whl",
+          "cp311": "https://huggingface.co/UmeAiRT/ComfyUI-Auto-Installer-Assets/resolve/main/whl/sm89/sageattention-2.2.0-cp311-cp311-win_amd64.whl",
+          "cp312": "https://huggingface.co/UmeAiRT/ComfyUI-Auto-Installer-Assets/resolve/main/whl/sm89/sageattention-2.2.0-cp312-cp312-win_amd64.whl",
+          "cp313": "https://huggingface.co/UmeAiRT/ComfyUI-Auto-Installer-Assets/resolve/main/whl/sm89/sageattention-2.2.0-cp313-cp313-win_amd64.whl"
         }
       },
       {
@@ -122,12 +122,12 @@
         "min_compute_capability": [9, 0],
         "max_compute_capability": [9, 9],
         "versions": {
-          "linux_cp311": "https://huggingface.co/UmeAiRT/ComfyUI-Auto-Installer-Assets/resolve/main/whl/sageattention-2.2.0+sm90-cp311-cp311-linux_x86_64.whl",
-          "linux_cp312": "https://huggingface.co/UmeAiRT/ComfyUI-Auto-Installer-Assets/resolve/main/whl/sageattention-2.2.0+sm90-cp312-cp312-linux_x86_64.whl",
-          "linux_cp313": "https://huggingface.co/UmeAiRT/ComfyUI-Auto-Installer-Assets/resolve/main/whl/sageattention-2.2.0+sm90-cp313-cp313-linux_x86_64.whl",
-          "cp311": "https://huggingface.co/UmeAiRT/ComfyUI-Auto-Installer-Assets/resolve/main/whl/sageattention-2.2.0+sm90-cp311-cp311-win_amd64.whl",
-          "cp312": "https://huggingface.co/UmeAiRT/ComfyUI-Auto-Installer-Assets/resolve/main/whl/sageattention-2.2.0+sm90-cp312-cp312-win_amd64.whl",
-          "cp313": "https://huggingface.co/UmeAiRT/ComfyUI-Auto-Installer-Assets/resolve/main/whl/sageattention-2.2.0+sm90-cp313-cp313-win_amd64.whl"
+          "linux_cp311": "https://huggingface.co/UmeAiRT/ComfyUI-Auto-Installer-Assets/resolve/main/whl/sm90/sageattention-2.2.0-cp311-cp311-linux_x86_64.whl",
+          "linux_cp312": "https://huggingface.co/UmeAiRT/ComfyUI-Auto-Installer-Assets/resolve/main/whl/sm90/sageattention-2.2.0-cp312-cp312-linux_x86_64.whl",
+          "linux_cp313": "https://huggingface.co/UmeAiRT/ComfyUI-Auto-Installer-Assets/resolve/main/whl/sm90/sageattention-2.2.0-cp313-cp313-linux_x86_64.whl",
+          "cp311": "https://huggingface.co/UmeAiRT/ComfyUI-Auto-Installer-Assets/resolve/main/whl/sm90/sageattention-2.2.0-cp311-cp311-win_amd64.whl",
+          "cp312": "https://huggingface.co/UmeAiRT/ComfyUI-Auto-Installer-Assets/resolve/main/whl/sm90/sageattention-2.2.0-cp312-cp312-win_amd64.whl",
+          "cp313": "https://huggingface.co/UmeAiRT/ComfyUI-Auto-Installer-Assets/resolve/main/whl/sm90/sageattention-2.2.0-cp313-cp313-win_amd64.whl"
         }
       },
       {

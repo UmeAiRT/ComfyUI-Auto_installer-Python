@@ -101,35 +101,23 @@ jobs:
           echo "Building for TORCH_CUDA_ARCH_LIST=$TORCH_CUDA_ARCH_LIST"
           $VENV_PYTHON -m pip wheel . --no-deps --no-build-isolation -w /wheels
 
-      - name: Rename wheel with arch suffix
-        run: |
-          cd /wheels
-          for f in sageattention-*.whl; do
-            # Insert arch suffix before the platform tag
-            # sageattention-2.2.0-cp313-cp313-linux_x86_64.whl
-            # → sageattention-2.2.0+sm${{ matrix.cuda_arch_short }}-cp313-cp313-linux_x86_64.whl
-            newname=$(echo "$f" | sed "s/sageattention-\([^-]*\)-/sageattention-\1+sm${{ matrix.cuda_arch_short }}-/")
-            if [ "$f" != "$newname" ]; then
-              mv "$f" "$newname"
-              echo "Renamed: $f → $newname"
-            fi
-          done
-          ls -lah /wheels/
-
       - name: Upload wheel to HuggingFace
         env:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
         run: |
           uv pip install --python $VENV_PYTHON huggingface_hub
+          ls -lah /wheels/
           $VENV_PYTHON -c "
           from huggingface_hub import HfApi
-          import glob
+          import glob, os
           api = HfApi()
           for whl in glob.glob('/wheels/*.whl'):
-              print(f'Uploading {whl}...')
+              name = os.path.basename(whl)
+              repo_path = '${{ env.HF_WHEEL_DIR }}/sm${{ matrix.cuda_arch_short }}/' + name
+              print(f'Uploading {name} → {repo_path}')
               api.upload_file(
                   path_or_fileobj=whl,
-                  path_in_repo='${{ env.HF_WHEEL_DIR }}/' + whl.split('/')[-1],
+                  path_in_repo=repo_path,
                   repo_id='${{ env.HF_REPO }}',
                   repo_type='model',
               )
@@ -149,10 +137,11 @@ jobs:
           api.login(os.environ['MODELSCOPE_API_TOKEN'])
           for whl in glob.glob('/wheels/*.whl'):
               name = os.path.basename(whl)
-              print(f'Uploading {name} to ModelScope...')
+              repo_path = '${{ env.HF_WHEEL_DIR }}/sm${{ matrix.cuda_arch_short }}/' + name
+              print(f'Uploading {name} → {repo_path} (ModelScope)')
               api.upload_file(
                   path_or_fileobj=whl,
-                  path_in_repo='${{ env.HF_WHEEL_DIR }}/' + name,
+                  path_in_repo=repo_path,
                   repo_id='${{ env.MS_REPO }}',
                   repo_type='dataset',
                   endpoint='${{ env.MS_ENDPOINT }}',
@@ -238,34 +227,44 @@ jobs:
           call "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvarsall.bat" x64
           C:\build-venv\Scripts\python.exe -m pip wheel . --no-deps --no-build-isolation -w C:\wheels
 
-      - name: Rename wheel with arch suffix
-        shell: pwsh
-        run: |
-          Get-ChildItem C:\wheels\sageattention-*.whl | ForEach-Object {
-            $newName = $_.Name -replace 'sageattention-([^-]+)-', 'sageattention-$1+sm${{ matrix.cuda_arch_short }}-'
-            if ($newName -ne $_.Name) {
-              Rename-Item $_.FullName $newName
-              Write-Host "Renamed: $($_.Name) → $newName"
-            }
-          }
-          Get-ChildItem C:\wheels
-
       - name: Upload wheel to HuggingFace
         env:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
-        shell: cmd
+        shell: pwsh
         run: |
           uv pip install --python C:\build-venv\Scripts\python.exe huggingface_hub
-          C:\build-venv\Scripts\python.exe -c "from huggingface_hub import HfApi; import glob, os; api = HfApi(); [print(f'Uploading {os.path.basename(w)}...') or api.upload_file(path_or_fileobj=w, path_in_repo='${{ env.HF_WHEEL_DIR }}/' + os.path.basename(w), repo_id='${{ env.HF_REPO }}', repo_type='model') or print('Done.') for w in glob.glob('C:\\wheels\\*.whl')]"
+          Get-ChildItem C:\wheels
+          C:\build-venv\Scripts\python.exe -c @"
+          from huggingface_hub import HfApi
+          import glob, os
+          api = HfApi()
+          for w in glob.glob('C:\\wheels\\*.whl'):
+              name = os.path.basename(w)
+              repo_path = '${{ env.HF_WHEEL_DIR }}/sm${{ matrix.cuda_arch_short }}/' + name
+              print(f'Uploading {name} -> {repo_path}')
+              api.upload_file(path_or_fileobj=w, path_in_repo=repo_path, repo_id='${{ env.HF_REPO }}', repo_type='model')
+              print('Done.')
+          "@
 
       - name: Upload wheel to ModelScope
         continue-on-error: true
         env:
           MODELSCOPE_API_TOKEN: ${{ secrets.MODELSCOPE_API_TOKEN }}
-        shell: cmd
+        shell: pwsh
         run: |
           uv pip install --python C:\build-venv\Scripts\python.exe modelscope
-          C:\build-venv\Scripts\python.exe -c "from modelscope.hub.api import HubApi; import glob, os; api = HubApi(); api.login(os.environ['MODELSCOPE_API_TOKEN']); [print(f'Uploading {os.path.basename(w)} to ModelScope...') or api.upload_file(path_or_fileobj=w, path_in_repo='${{ env.HF_WHEEL_DIR }}/' + os.path.basename(w), repo_id='${{ env.MS_REPO }}', repo_type='dataset', endpoint='${{ env.MS_ENDPOINT }}', commit_message='CI: Upload SageAttention wheel') or print('Done.') for w in glob.glob('C:\\wheels\\*.whl')]"
+          C:\build-venv\Scripts\python.exe -c @"
+          from modelscope.hub.api import HubApi
+          import glob, os
+          api = HubApi()
+          api.login(os.environ['MODELSCOPE_API_TOKEN'])
+          for w in glob.glob('C:\\wheels\\*.whl'):
+              name = os.path.basename(w)
+              repo_path = '${{ env.HF_WHEEL_DIR }}/sm${{ matrix.cuda_arch_short }}/' + name
+              print(f'Uploading {name} -> {repo_path} (ModelScope)')
+              api.upload_file(path_or_fileobj=w, path_in_repo=repo_path, repo_id='${{ env.MS_REPO }}', repo_type='dataset', endpoint='${{ env.MS_ENDPOINT }}', commit_message='CI: Upload SageAttention wheel')
+              print('Done.')
+          "@
 
       - name: Upload wheel as artifact
         uses: actions/upload-artifact@v4
@@ -401,11 +400,11 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           path: /tmp/wheels
-          pattern: sa*
-          merge-multiple: true
+          # Each artifact has name like: sa2-sm89-cp3.13-linux-wheel
+          # download-artifact creates subdirectories per artifact name
 
       - name: List downloaded wheels
-        run: ls -lah /tmp/wheels/
+        run: find /tmp/wheels -name "*.whl" -ls
 
       - name: Install uv and dependencies
         run: |
@@ -421,7 +420,8 @@ jobs:
           HF_REPO: ${{ env.HF_REPO }}
         run: |
           /tmp/venv/bin/python << 'PYEOF'
-          import json, hashlib, glob, os
+          import json, hashlib, os, re
+          from pathlib import Path
           from huggingface_hub import HfApi, hf_hub_download
 
           api = HfApi()
@@ -438,66 +438,58 @@ jobs:
                   manifest = json.load(f)
           except Exception as e:
               print(f"Could not download existing manifest: {e}")
-              print("Creating new manifest structure")
               manifest = {"_manifest_version": 1, "whl": {}}
 
-          # Ensure whl section exists
           if "whl" not in manifest:
               manifest["whl"] = {}
 
-          # Process all downloaded wheels
-          wheels = glob.glob("/tmp/wheels/*.whl")
-          print(f"Found {len(wheels)} wheels to process")
-
+          # Walk artifact directories — each named like sa2-sm89-cp3.13-linux-wheel
           sa2_files = {}
           sa3_files = {}
+          sa2_version = "unknown"
 
-          for whl_path in sorted(wheels):
-              filename = os.path.basename(whl_path)
-              # Compute SHA-256
-              sha256 = hashlib.sha256(open(whl_path, "rb").read()).hexdigest()
-              print(f"  {filename}: {sha256}")
+          wheels_root = Path("/tmp/wheels")
+          for artifact_dir in sorted(wheels_root.iterdir()):
+              if not artifact_dir.is_dir():
+                  continue
 
-              # Determine SA version and Python version from filename
-              # sageattention-2.2.0+sm89-cp313-cp313-linux_x86_64.whl
-              # sageattn3-1.0.0-cp313-cp313-linux_x86_64.whl
-              parts = filename.split("-")
-              pkg_name = parts[0]
-              version = parts[1]
+              # Extract arch from artifact name: sa2-sm89-cp3.13-linux-wheel → sm89
+              dir_name = artifact_dir.name
+              sm_match = re.search(r"sm(\d+)", dir_name)
+              arch_key = f"sm{sm_match.group(1)}" if sm_match else "default"
 
-              # Extract cpXYZ
-              cp_tag = parts[2]  # e.g. cp313
+              for whl_path in sorted(artifact_dir.glob("*.whl")):
+                  filename = whl_path.name
+                  sha256 = hashlib.sha256(whl_path.read_bytes()).hexdigest()
 
-              # Determine platform key
-              if "linux" in filename:
-                  platform_suffix = "linux"
-              elif "win" in filename:
-                  platform_suffix = "win"
-              else:
-                  platform_suffix = "other"
+                  parts = filename.split("-")
+                  pkg_name = parts[0]
+                  version = parts[1]
+                  cp_tag = parts[2]  # e.g. cp313
 
-              key = f"{cp_tag}_{platform_suffix}" if platform_suffix != "other" else cp_tag
+                  if "linux" in filename:
+                      platform_suffix = "linux"
+                  elif "win" in filename:
+                      platform_suffix = "win"
+                  else:
+                      platform_suffix = "other"
 
-              entry = {
-                  "filename": f"whl/{filename}",
-                  "sha256": sha256
-              }
+                  key = f"{cp_tag}_{platform_suffix}" if platform_suffix != "other" else cp_tag
 
-              if pkg_name.startswith("sageattn3") or pkg_name.startswith("sageattention3"):
-                  sa3_files[key] = entry
-              else:
-                  # Group SA2 by arch — extract sm tag from version (e.g. "2.2.0+sm89")
-                  sm_tag = ""
-                  if "+sm" in version:
-                      sm_tag = version.split("+sm")[1]
-                  arch_key = f"sm{sm_tag}" if sm_tag else "default"
+                  # Store with directory path for correct lookup
+                  if pkg_name.startswith("sageattn3") or pkg_name.startswith("sageattention3"):
+                      entry = {"filename": f"whl/{filename}", "sha256": sha256}
+                      sa3_files[key] = entry
+                  else:
+                      entry = {"filename": f"whl/{arch_key}/{filename}", "sha256": sha256}
+                      if arch_key not in sa2_files:
+                          sa2_files[arch_key] = {}
+                      sa2_files[arch_key][key] = entry
+                      sa2_version = version
 
-                  if arch_key not in sa2_files:
-                      sa2_files[arch_key] = {}
-                  sa2_files[arch_key][key] = entry
-                  sa2_version = version.split("+")[0]
+                  print(f"  [{arch_key}] {filename}: {sha256}")
 
-          # Update manifest — per-arch SA2 entries
+          # Update manifest
           for arch_key, files in sa2_files.items():
               manifest_key = f"sageattention_{arch_key}"
               if manifest_key not in manifest["whl"]:

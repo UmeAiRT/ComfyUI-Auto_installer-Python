@@ -499,7 +499,12 @@ def lookup_wheel_checksum(
     """Look up the SHA-256 checksum for a wheel from the tools manifest.
 
     Searches through all entries in the ``whl`` section for a matching
-    filename.
+    filename.  Compares the path suffix (everything after the last
+    ``whl/`` segment) to handle per-architecture subdirectories
+    (e.g. ``whl/sm89/sageattention-2.2.0-cp313-cp313-linux_x86_64.whl``).
+
+    Falls back to basename-only comparison for backwards compatibility
+    with manifests that don't use subdirectories.
 
     Args:
         manifest: Parsed ``tools_manifest.json`` dict.
@@ -511,8 +516,14 @@ def lookup_wheel_checksum(
     if not manifest:
         return None
 
-    # Extract filename from URL (e.g. "sageattention-2.2.0-cp312-cp312-win_amd64.whl")
-    filename = wheel_url.rsplit("/", 1)[-1] if "/" in wheel_url else wheel_url
+    # Extract the path after "whl/" from the URL for comparison
+    # e.g. "https://...Assets/resolve/main/whl/sm89/sageattention-2.2.0-cp313-...whl"
+    #   → "sm89/sageattention-2.2.0-cp313-...whl"
+    url_whl_path = ""
+    if "/whl/" in wheel_url:
+        url_whl_path = wheel_url.split("/whl/", 1)[-1]
+
+    url_basename = wheel_url.rsplit("/", 1)[-1] if "/" in wheel_url else wheel_url
 
     whl_section = manifest.get("whl", {})
     for _pkg_name, pkg_data in whl_section.items():
@@ -523,8 +534,17 @@ def lookup_wheel_checksum(
             if not isinstance(file_info, dict):
                 continue
             manifest_filename = file_info.get("filename", "")
-            # Compare just the basename
-            if manifest_filename.rsplit("/", 1)[-1] == filename:
+
+            # Prefer full path match (handles per-arch subdirectories)
+            if url_whl_path and manifest_filename:
+                # manifest stores e.g. "whl/sm89/sageattention-2.2.0-..."
+                manifest_whl_path = manifest_filename.split("whl/", 1)[-1] if "whl/" in manifest_filename else ""
+                if manifest_whl_path and manifest_whl_path == url_whl_path:
+                    return file_info.get("sha256")
+
+            # Fallback: basename comparison (backwards compat)
+            manifest_basename = manifest_filename.rsplit("/", 1)[-1]
+            if manifest_basename == url_basename:
                 return file_info.get("sha256")
 
     return None
