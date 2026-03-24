@@ -25,15 +25,44 @@ class UvNotFoundError(RuntimeError):
     """Raised when ``uv`` is not available on the system."""
 
 
-def _ensure_uv() -> str:
+def find_uv(install_path: Path | None = None) -> str | None:
+    """Find the ``uv`` executable.
+
+    Checks the local ``scripts/uv/`` directory first (where the
+    bootstrap installs it), then falls back to the system PATH.
+
+    Args:
+        install_path: Root install directory (e.g. ``~/ComfyUI``).
+            If provided, checks ``install_path/scripts/uv/uv[.exe]``.
+
+    Returns:
+        Absolute path to ``uv``, or ``None`` if not found.
+    """
+    import shutil
+    import sys
+
+    # 1. Check local install path
+    if install_path is not None:
+        uv_dir = install_path / "scripts" / "uv"
+        if sys.platform == "win32":
+            local_uv = uv_dir / "uv.exe"
+        else:
+            local_uv = uv_dir / "uv"
+        if local_uv.is_file():
+            return str(local_uv)
+
+    # 2. Fall back to system PATH
+    path = shutil.which("uv")
+    return path
+
+
+def _ensure_uv(install_path: Path | None = None) -> str:
     """Verify that ``uv`` exists and return its path.
 
     Raises:
         UvNotFoundError: If ``uv`` cannot be found.
     """
-    import shutil
-
-    path = shutil.which("uv")
+    path = find_uv(install_path)
     if path is None:
         raise UvNotFoundError(
             "uv is not installed or not in PATH. "

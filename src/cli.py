@@ -352,7 +352,12 @@ def info() -> None:
     aria2_available = check_command_exists("aria2c")
     table.add_row("aria2c", "[green]Available[/]" if aria2_available else "[dim]Not installed[/]")
 
-    uv_ver = get_command_version("uv", "version")
+    from src.utils.packaging import find_uv
+    uv_path = find_uv(Path.cwd())
+    if uv_path:
+        uv_ver = get_command_version(uv_path, "version")
+    else:
+        uv_ver = None
     table.add_row("uv", uv_ver or "[dim]Not installed[/]")
 
     console.print(table)

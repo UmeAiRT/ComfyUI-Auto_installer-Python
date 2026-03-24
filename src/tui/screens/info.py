@@ -187,7 +187,12 @@ def _build_info_text(install_path: Path) -> str:
         lines.append(f"[b]Git:[/b]            {git_ver or '[dim]Not installed[/dim]'}")
         aria2 = check_command_exists("aria2c")
         lines.append(f"[b]aria2c:[/b]         {'[green]Available[/green]' if aria2 else '[dim]Not installed[/dim]'}")
-        uv_ver = get_command_version("uv", "version")
+        from src.utils.packaging import find_uv
+        uv_path = find_uv(install_path)
+        if uv_path:
+            uv_ver = get_command_version(uv_path, "version")
+        else:
+            uv_ver = None
         lines.append(f"[b]uv:[/b]             {uv_ver or '[dim]Not installed[/dim]'}")
     except Exception:
         pass
