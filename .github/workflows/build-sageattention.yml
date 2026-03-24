@@ -146,7 +146,6 @@ jobs:
                   path_in_repo=repo_path,
                   repo_id='${{ env.MS_REPO }}',
                   repo_type='dataset',
-                  endpoint='${{ env.MS_ENDPOINT }}',
                   commit_message='CI: Upload SageAttention wheel',
               )
               print('Done.')
@@ -265,7 +264,7 @@ jobs:
               name = os.path.basename(w)
               repo_path = '${{ env.HF_WHEEL_DIR }}/sm${{ matrix.cuda_arch_short }}/' + name
               print(f'Uploading {name} -> {repo_path} (ModelScope)')
-              api.upload_file(path_or_fileobj=w, path_in_repo=repo_path, repo_id='${{ env.MS_REPO }}', repo_type='dataset', endpoint='${{ env.MS_ENDPOINT }}', commit_message='CI: Upload SageAttention wheel')
+              api.upload_file(path_or_fileobj=w, path_in_repo=repo_path, repo_id='${{ env.MS_REPO }}', repo_type='dataset', commit_message='CI: Upload SageAttention wheel')
               print('Done.')
           "@
 
@@ -377,7 +376,6 @@ jobs:
                   path_in_repo='${{ env.HF_WHEEL_DIR }}/' + name,
                   repo_id='${{ env.MS_REPO }}',
                   repo_type='dataset',
-                  endpoint='${{ env.MS_ENDPOINT }}',
                   commit_message='CI: Upload SageAttention wheel',
               )
               print('Done.')
@@ -557,7 +555,6 @@ jobs:
               path_in_repo="tools_manifest.json",
               repo_id="${{ env.MS_REPO }}",
               repo_type="dataset",
-              endpoint="${{ env.MS_ENDPOINT }}",
               commit_message="CI: Update tools_manifest.json",
           )
           print("\n✅ Manifest uploaded to ModelScope!")
