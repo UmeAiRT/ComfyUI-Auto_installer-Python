@@ -354,10 +354,7 @@ def info() -> None:
 
     from src.utils.packaging import find_uv
     uv_path = find_uv(Path.cwd())
-    if uv_path:
-        uv_ver = get_command_version(uv_path, "version")
-    else:
-        uv_ver = None
+    uv_ver = get_command_version(uv_path, "version") if uv_path else None
     table.add_row("uv", uv_ver or "[dim]Not installed[/]")
 
     console.print(table)
