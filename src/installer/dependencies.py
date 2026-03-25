@@ -116,6 +116,11 @@ def install_python_packages(
                 else:
                     pkgs[pkgs.index("onnxruntime-gpu")] = "onnxruntime"
 
+        # On Windows, insightface is installed via precompiled wheel (no C++ compiler needed)
+        import sys
+        if sys.platform == "win32" and "insightface" in pkgs:
+            pkgs.remove("insightface")
+
         log.item(f"Installing {len(pkgs)} standard packages...")
         uv_install(python_exe, pkgs)
 
