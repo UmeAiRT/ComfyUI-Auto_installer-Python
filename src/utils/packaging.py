@@ -25,21 +25,26 @@ class UvNotFoundError(RuntimeError):
     """Raised when ``uv`` is not available on the system."""
 
 
-def find_uv(install_path: Path | None = None) -> str | None:
+def find_uv(
+    install_path: Path | None = None,
+    python_exe: Path | None = None,
+) -> str | None:
     """Find the ``uv`` executable.
 
     Checks the local ``scripts/uv/`` directory first (where the
     bootstrap installs it), then falls back to the system PATH.
 
-    When *install_path* is not provided, auto-detects the install
-    root by walking up from the current working directory looking
-    for a ``scripts/uv/`` directory.  This ensures that
-    :func:`uv_install` (which doesn't know the install path) can
-    still find the locally-installed ``uv``.
+    When *install_path* is not provided but *python_exe* is, the
+    install root is derived from the venv Python path::
+
+        {install_path}/scripts/venv/Scripts/python.exe  (Windows)
+        {install_path}/scripts/venv/bin/python           (Linux)
 
     Args:
         install_path: Root install directory (e.g. ``~/ComfyUI``).
             If provided, checks ``install_path/scripts/uv/uv[.exe]``.
+        python_exe: Path to the venv Python executable. Used to
+            auto-detect *install_path* when not explicitly given.
 
     Returns:
         Absolute path to ``uv``, or ``None`` if not found.
@@ -55,12 +60,15 @@ def find_uv(install_path: Path | None = None) -> str | None:
         if local_uv.is_file():
             return str(local_uv)
 
-    # 2. Auto-detect: walk up from CWD to find scripts/uv/
-    if install_path is None:
+    # 2. Auto-detect from python_exe path
+    #    python_exe is {install}/scripts/venv/Scripts/python.exe (win)
+    #    or             {install}/scripts/venv/bin/python         (linux)
+    if install_path is None and python_exe is not None:
         from pathlib import Path as _P
 
-        cwd = _P.cwd().resolve()
-        for candidate in [cwd, *cwd.parents]:
+        exe = _P(python_exe).resolve()
+        # Walk up to find a parent containing scripts/uv/
+        for candidate in exe.parents:
             local_uv = candidate / "scripts" / "uv" / uv_name
             if local_uv.is_file():
                 return str(local_uv)
@@ -70,13 +78,16 @@ def find_uv(install_path: Path | None = None) -> str | None:
     return path
 
 
-def _ensure_uv(install_path: Path | None = None) -> str:
+def _ensure_uv(
+    install_path: Path | None = None,
+    python_exe: Path | None = None,
+) -> str:
     """Verify that ``uv`` exists and return its path.
 
     Raises:
         UvNotFoundError: If ``uv`` cannot be found.
     """
-    path = find_uv(install_path)
+    path = find_uv(install_path, python_exe)
     if path is None:
         raise UvNotFoundError(
             "uv is not installed or not in PATH. "
@@ -125,7 +136,7 @@ def uv_install(
         UvNotFoundError: If ``uv`` is not available.
         CommandError: If the command fails and *ignore_errors* is False.
     """
-    uv_path = _ensure_uv()
+    uv_path = _ensure_uv(python_exe=python_exe)
     if log is None:
         log = get_logger()
 
