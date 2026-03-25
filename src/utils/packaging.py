@@ -31,6 +31,12 @@ def find_uv(install_path: Path | None = None) -> str | None:
     Checks the local ``scripts/uv/`` directory first (where the
     bootstrap installs it), then falls back to the system PATH.
 
+    When *install_path* is not provided, auto-detects the install
+    root by walking up from the current working directory looking
+    for a ``scripts/uv/`` directory.  This ensures that
+    :func:`uv_install` (which doesn't know the install path) can
+    still find the locally-installed ``uv``.
+
     Args:
         install_path: Root install directory (e.g. ``~/ComfyUI``).
             If provided, checks ``install_path/scripts/uv/uv[.exe]``.
@@ -41,17 +47,25 @@ def find_uv(install_path: Path | None = None) -> str | None:
     import shutil
     import sys
 
-    # 1. Check local install path
+    uv_name = "uv.exe" if sys.platform == "win32" else "uv"
+
+    # 1. Check explicit install path
     if install_path is not None:
-        uv_dir = install_path / "scripts" / "uv"
-        if sys.platform == "win32":
-            local_uv = uv_dir / "uv.exe"
-        else:
-            local_uv = uv_dir / "uv"
+        local_uv = install_path / "scripts" / "uv" / uv_name
         if local_uv.is_file():
             return str(local_uv)
 
-    # 2. Fall back to system PATH
+    # 2. Auto-detect: walk up from CWD to find scripts/uv/
+    if install_path is None:
+        from pathlib import Path as _P
+
+        cwd = _P.cwd().resolve()
+        for candidate in [cwd, *cwd.parents]:
+            local_uv = candidate / "scripts" / "uv" / uv_name
+            if local_uv.is_file():
+                return str(local_uv)
+
+    # 3. Fall back to system PATH
     path = shutil.which("uv")
     return path
 
