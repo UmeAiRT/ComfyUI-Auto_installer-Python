@@ -325,6 +325,13 @@ def update_all_nodes(
         log.item(f"{len(user_nodes)} user-installed node(s) preserved:", style="success")
         for name in sorted(user_nodes):
             log.sub(f"  {name}", style="dim")
+            # Reinstall requirements for user-installed nodes
+            node_dir = custom_nodes_dir / name
+            for req_name in ("requirements.txt", "requirements-no-cupy.txt"):
+                req_file = node_dir / req_name
+                if req_file.exists():
+                    _pip_install_requirements(python_exe, req_file, log)
+                    break
 
     # Update bundled nodes
     log.item(f"Updating {len(manifest.nodes)} bundled nodes...")
@@ -339,3 +346,60 @@ def update_all_nodes(
 
     log.item(f"Updated: {success} OK, {fail} failed", style="success" if fail == 0 else "yellow")
     return success, fail
+
+
+def reinstall_all_node_requirements(
+    custom_nodes_dir: Path,
+    python_exe: Path,
+    log: InstallerLogger,
+) -> tuple[int, int]:
+    """Reinstall requirements for ALL installed custom nodes.
+
+    Scans every subdirectory in *custom_nodes_dir* for a
+    ``requirements.txt`` (or ``requirements-no-cupy.txt``) and
+    installs it via ``uv``.  This is needed when the Python
+    environment has been recreated (migration, ``--reinstall``).
+
+    Does NOT clone or update any node — only installs pip
+    requirements for nodes already present on disk.
+
+    Args:
+        custom_nodes_dir: ``ComfyUI/custom_nodes/`` directory.
+        python_exe: Path to the venv Python executable.
+        log: Installer logger for user-facing messages.
+
+    Returns:
+        Tuple of ``(installed_count, skipped_count)``.
+    """
+    if not custom_nodes_dir.exists():
+        log.item("No custom_nodes directory found.", style="dim")
+        return 0, 0
+
+    log.step("Reinstalling Custom Node Requirements")
+
+    installed = 0
+    skipped = 0
+
+    for node_dir in sorted(custom_nodes_dir.iterdir()):
+        if not node_dir.is_dir() or node_dir.name.startswith(".") or node_dir.name == "__pycache__":
+            continue
+
+        req_file = None
+        for req_name in ("requirements.txt", "requirements-no-cupy.txt"):
+            candidate = node_dir / req_name
+            if candidate.exists():
+                req_file = candidate
+                break
+
+        if req_file:
+            log.sub(f"  {node_dir.name}: installing requirements...", style="cyan")
+            _pip_install_requirements(python_exe, req_file, log)
+            installed += 1
+        else:
+            skipped += 1
+
+    log.item(
+        f"Node requirements: {installed} installed, {skipped} without requirements",
+        style="success",
+    )
+    return installed, skipped

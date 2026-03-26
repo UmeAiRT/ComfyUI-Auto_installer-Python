@@ -13,6 +13,7 @@ from src.installer.nodes import (
     install_all_nodes,
     install_node,
     load_manifest,
+    reinstall_all_node_requirements,
     update_all_nodes,
     update_node,
 )
@@ -191,6 +192,108 @@ class TestUpdateAllNodes:
 
         # Should have logged user nodes
         log.item.assert_any_call("1 user-installed node(s) preserved:", style="success")
+
+    def test_reinstalls_user_node_requirements(self, tmp_path: Path) -> None:
+        """User-installed nodes with requirements.txt should have deps reinstalled."""
+        nodes_dir = tmp_path / "custom_nodes"
+        nodes_dir.mkdir()
+        # User-installed node with requirements
+        user_node = nodes_dir / "MyCustomNode"
+        user_node.mkdir()
+        (user_node / "requirements.txt").write_text("some-package>=1.0\n")
+
+        manifest = NodeManifest(nodes=[])  # Empty manifest
+
+        log = MagicMock()
+        python_exe = MagicMock()
+        with patch("src.installer.nodes.uv_install") as mock_uv:
+            update_all_nodes(manifest, nodes_dir, python_exe, log)
+            mock_uv.assert_called_once()
+
+
+class TestReinstallAllNodeRequirements:
+    """Tests for reinstall_all_node_requirements."""
+
+    def test_empty_directory(self, tmp_path: Path) -> None:
+        """Should return (0, 0) if custom_nodes doesn't exist."""
+        log = MagicMock()
+        installed, skipped = reinstall_all_node_requirements(
+            tmp_path / "nonexistent", MagicMock(), log
+        )
+        assert installed == 0
+        assert skipped == 0
+
+    def test_installs_requirements_for_all_nodes(self, tmp_path: Path) -> None:
+        """Should find and install requirements for all nodes."""
+        nodes_dir = tmp_path / "custom_nodes"
+        nodes_dir.mkdir()
+
+        # Node with requirements.txt
+        node_a = nodes_dir / "NodeA"
+        node_a.mkdir()
+        (node_a / "requirements.txt").write_text("numpy\n")
+
+        # Node with requirements-no-cupy.txt
+        node_b = nodes_dir / "NodeB"
+        node_b.mkdir()
+        (node_b / "requirements-no-cupy.txt").write_text("scipy\n")
+
+        # Node without requirements
+        node_c = nodes_dir / "NodeC"
+        node_c.mkdir()
+
+        log = MagicMock()
+        with patch("src.installer.nodes.uv_install") as mock_uv:
+            installed, skipped = reinstall_all_node_requirements(
+                nodes_dir, MagicMock(), log
+            )
+            assert installed == 2
+            assert skipped == 1
+            assert mock_uv.call_count == 2
+
+    def test_skips_hidden_and_pycache(self, tmp_path: Path) -> None:
+        """Should skip hidden directories and __pycache__."""
+        nodes_dir = tmp_path / "custom_nodes"
+        nodes_dir.mkdir()
+
+        (nodes_dir / ".hidden").mkdir()
+        (nodes_dir / ".hidden" / "requirements.txt").write_text("x\n")
+        (nodes_dir / "__pycache__").mkdir()
+
+        # Only real node
+        real = nodes_dir / "RealNode"
+        real.mkdir()
+        (real / "requirements.txt").write_text("y\n")
+
+        log = MagicMock()
+        with patch("src.installer.nodes.uv_install") as mock_uv:
+            installed, skipped = reinstall_all_node_requirements(
+                nodes_dir, MagicMock(), log
+            )
+            assert installed == 1
+            assert skipped == 0
+            assert mock_uv.call_count == 1
+
+    def test_prefers_requirements_txt_over_no_cupy(self, tmp_path: Path) -> None:
+        """When both requirements files exist, should use requirements.txt."""
+        nodes_dir = tmp_path / "custom_nodes"
+        nodes_dir.mkdir()
+
+        node = nodes_dir / "DualNode"
+        node.mkdir()
+        (node / "requirements.txt").write_text("main\n")
+        (node / "requirements-no-cupy.txt").write_text("fallback\n")
+
+        log = MagicMock()
+        with patch("src.installer.nodes.uv_install") as mock_uv:
+            installed, _ = reinstall_all_node_requirements(
+                nodes_dir, MagicMock(), log
+            )
+            assert installed == 1
+            # Should have been called with requirements.txt, not requirements-no-cupy.txt
+            req_path = mock_uv.call_args.kwargs.get("requirements")
+            assert req_path is not None
+            assert req_path.name == "requirements.txt"
 
 
 class TestLoadManifest:
