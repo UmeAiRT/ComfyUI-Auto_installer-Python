@@ -326,6 +326,10 @@ Write-Host "[Step 5/6] Setting up Python environment..." -ForegroundColor Yellow
 $uvDir = Join-Path $InstallPath "scripts\uv"
 $uvExe = Join-Path $uvDir "uv.exe"
 
+# Native commands (uv, curl, tar) write info to stderr — prevent PS from
+# treating those messages as terminating errors.
+$ErrorActionPreference = "Continue"
+
 if (-not (Test-Path $uvExe)) {
     Write-Host "  Downloading uv package manager..." -ForegroundColor Cyan
     New-Item -ItemType Directory -Path $uvDir -Force | Out-Null
@@ -371,6 +375,9 @@ if ($LASTEXITCODE -ne 0) {
 }
 
 Write-Host "[OK] Python environment ready." -ForegroundColor Green
+
+# Restore strict error handling
+$ErrorActionPreference = "Stop"
 
 # ============================================================================
 # Step 6: Run the installer (reuses existing ComfyUI + nodes)
